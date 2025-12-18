@@ -1,10 +1,12 @@
-﻿namespace Pizza_API.Entities.Dtos.Order
+﻿using Pizza_API.Entities.Dtos.OrderItem;
+
+namespace Pizza_API.Entities.Dtos.Order
 {
     public class OrderDto
     {
         public int Id { get; set; }
-        public string PizzaName { get; set; }
-        public decimal PizzaValue { get; set; }
-        public int Quantity { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        public List<OrderItemDto> Items { get; set; } = new();
     }
 }

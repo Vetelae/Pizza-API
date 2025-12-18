@@ -52,7 +52,7 @@ namespace Pizza_API.Controllers
         }
 
         // PUT: Update existing order
-        [HttpPut("{id}")]
+       [HttpPut("{id}")]
         public IActionResult UpdateOrder(int id, UpdateOrderDto dto)
         {
             var updated = _orderService.UpdateOrder(id, dto);
@@ -62,7 +62,7 @@ namespace Pizza_API.Controllers
 
             return Ok(updated);
         }
-         
+
         //DELETE: Delete existing order
         [HttpDelete("{id}")]
         public IActionResult DeleteOrder(int id)

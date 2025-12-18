@@ -5,9 +5,9 @@ namespace Pizza_API.Entities
     public class Order
     {
         public int Id { get; set; }
-        public int PizzaId { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public Pizza Pizza { get; set; }
-        public int Quantity { get; set; }
+        // Navigation property
+        public List<OrderItem> Items { get; set; } = new();
     }
 }
