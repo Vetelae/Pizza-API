@@ -1,8 +1,9 @@
-﻿namespace Pizza_API.Entities.Dtos.Order
+﻿using Pizza_API.Entities.Dtos.OrderItem;
+
+namespace Pizza_API.Entities.Dtos.Order
 {
     public class CreateOrderDto
     {
-        public int PizzaId { get; set; }
-        public int Quantity { get; set; }
+        public List<CreateOrderItemDto> Items { get; set; } = new();
     }
 }
