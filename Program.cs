@@ -18,7 +18,7 @@ namespace Pizza_API
             builder.Services.AddOpenApi();
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // Register Services
             builder.Services.AddScoped<IPizzaService, PizzaService>();
@@ -46,4 +46,3 @@ namespace Pizza_API
         }
     }
 }
-

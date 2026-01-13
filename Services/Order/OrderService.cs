@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Order;
@@ -176,35 +175,6 @@ namespace Pizza_API.Services
                 }).ToList()
             };
         }
-
-
-        // UpdateOrder
-        //public OrderDto? UpdateOrder(int id, UpdateOrderDto dto)
-        //{
-        //    var order = _dbContext.Orders.Find(id);
-        //    if (order == null)
-        //        return null;
-
-        //    var pizza = _dbContext.Pizzas.Find(dto.PizzaId);
-        //    if (pizza == null)
-        //        return null;
-
-        //    // Update the entity
-        //    order.PizzaId = dto.PizzaId;
-        //    order.Quantity = dto.Quantity;
-
-        //    // Save changes
-        //    _dbContext.SaveChanges();
-
-        //    // Return updated DTO
-        //    return new OrderDto
-        //    {
-        //        Id = order.Id,
-        //        PizzaName = pizza.Name,
-        //        PizzaValue = pizza.Value,
-        //        Quantity = order.Quantity
-        //    };
-        //}
 
         // DeleteOrder
         public bool DeleteOrder(int id)
