@@ -17,9 +17,9 @@ namespace Pizza_API.Services
         }
 
         // GetAllOrders
-        public List<OrderDto> GetAllOrders()
+        public async Task<List<OrderDto>> GetAllOrdersAsync()
         {
-            return _dbContext.Orders
+            return await _dbContext.Orders
                 .Include(o => o.Items)
                 .ThenInclude(i => i.Pizza)
                 .Select(order => new OrderDto
@@ -34,16 +34,16 @@ namespace Pizza_API.Services
                         Quantity = i.Quantity
                     }).ToList()
                 })
-            .ToList();
+            .ToListAsync();
         }
 
         // GetOrderById
-        public OrderDto? GetOrderById(int id)
+        public async Task<OrderDto?> GetOrderByIdAsync(int id)
         {
-            var order = _dbContext.Orders
+            var order = await _dbContext.Orders
                 .Include(o => o.Items)
                 .ThenInclude(i => i.Pizza)
-                .FirstOrDefault(o => o.Id == id);
+                .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
                 return null;
@@ -63,19 +63,19 @@ namespace Pizza_API.Services
         }
 
         // CreateOrder
-        public OrderDto? CreateOrder(CreateOrderDto dto)
+        public async Task<OrderDto?> CreateOrderAsync(CreateOrderDto dto)
         {
             // Check all pizzas exist
             foreach (var item in dto.Items)
             {
-                var pizzaExists = _dbContext.Pizzas.Any(p => p.Id == item.PizzaId);
+                var pizzaExists = await _dbContext.Pizzas.AnyAsync(p => p.Id == item.PizzaId);
                 if (!pizzaExists)
                     return null;
             }
 
-            var pizzas = _dbContext.Pizzas
+            var pizzas = await _dbContext.Pizzas
                 .Where(p => dto.Items.Select(i => i.PizzaId).Contains(p.Id))
-                .ToDictionary(p => p.Id);
+                .ToDictionaryAsync(p => p.Id);
 
             // Create the order
             var order = new Order
@@ -90,7 +90,7 @@ namespace Pizza_API.Services
 
             // Save to database
             _dbContext.Orders.Add(order);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             // Map to DTO
             return new OrderDto
@@ -107,22 +107,22 @@ namespace Pizza_API.Services
             };
         }
 
-        public OrderDto? UpdateOrder(int id, UpdateOrderDto dto)
+        public async Task<OrderDto?> UpdateOrderAsync(int id, UpdateOrderDto dto)
         {
             // Load order with items
-            var order = _dbContext.Orders
+            var order = await _dbContext.Orders
                 .Include(o => o.Items)
                 .ThenInclude(i => i.Pizza)
-                .FirstOrDefault(o => o.Id == id);
+                .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
                 return null;
 
             // Validate pizzas exist
             var pizzaIds = dto.Items.Select(i => i.PizzaId).Distinct().ToList();
-            var pizzas = _dbContext.Pizzas
+            var pizzas = await _dbContext.Pizzas
                 .Where(p => pizzaIds.Contains(p.Id))
-                .ToDictionary(p => p.Id);
+                .ToDictionaryAsync(p => p.Id);
 
             if (pizzas.Count != pizzaIds.Count)
                 return null;
@@ -159,7 +159,7 @@ namespace Pizza_API.Services
             _dbContext.OrderItems.RemoveRange(itemsToRemove);
 
             // Save changes
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             // Map to DTO
             return new OrderDto
@@ -177,11 +177,11 @@ namespace Pizza_API.Services
         }
 
         // DeleteOrder
-        public bool DeleteOrder(int id)
+        public async Task <bool> DeleteOrderAsync(int id)
         {
-            var order = _dbContext.Orders
+            var order = await _dbContext.Orders
                 .Include(o => o.Items)
-                .FirstOrDefault(o => o.Id == id);
+                .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
                 return false;
@@ -189,7 +189,7 @@ namespace Pizza_API.Services
             _dbContext.OrderItems.RemoveRange(order.Items);
             _dbContext.Orders.Remove(order);
 
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
             return true;
         }
     }

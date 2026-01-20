@@ -11,5 +11,6 @@ namespace Pizza_API.Data
         public DbSet<Pizza> Pizzas { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<News> News { get; set; }
     }
 }

@@ -4,10 +4,10 @@ namespace Pizza_API.Services
 {
     public interface IPizzaService
     {
-        List<PizzaDto> GetAllPizzas();
-        PizzaDto? GetPizzaById(int id);
-        PizzaDto CreatePizza(CreatePizzaDto dto);
-        PizzaDto? UpdatePizza(int id, UpdatePizzaDto dto);
-        bool DeletePizza(int id);
+        Task<List<PizzaDto>> GetAllPizzasAsync();
+        Task<PizzaDto?> GetPizzaByIdAsync(int id);
+        Task<PizzaDto> CreatePizzaAsync(CreatePizzaDto dto);
+        Task<PizzaDto?> UpdatePizzaAsync(int id, UpdatePizzaDto dto);
+        Task<bool> DeletePizzaAsync(int id);
     }
 }

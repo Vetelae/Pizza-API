@@ -23,7 +23,7 @@ namespace Pizza_API
             // Register Services
             builder.Services.AddScoped<IPizzaService, PizzaService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
-
+            builder.Services.AddScoped<INewsService, NewsService>();
 
             var app = builder.Build();
 
