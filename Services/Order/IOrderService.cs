@@ -6,10 +6,10 @@ namespace Pizza_API.Services
 {
     public interface IOrderService
     {
-        List<OrderDto> GetAllOrders();
-        OrderDto? GetOrderById(int id);
-        OrderDto? CreateOrder(CreateOrderDto dto);
-        OrderDto? UpdateOrder(int id, UpdateOrderDto dto);
-        bool DeleteOrder(int id);
+        Task<List<OrderDto>> GetAllOrdersAsync();
+        Task<OrderDto?> GetOrderByIdAsync(int id);
+        Task<OrderDto?> CreateOrderAsync(CreateOrderDto dto);
+        Task<OrderDto?> UpdateOrderAsync(int id, UpdateOrderDto dto);
+        Task<bool> DeleteOrderAsync(int id);
     }
 }

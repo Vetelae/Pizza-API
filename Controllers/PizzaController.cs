@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Pizza_API.Data;
-using Pizza_API.Entities;
+﻿using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Pizza;
 using Pizza_API.Services;
 
@@ -20,18 +17,18 @@ namespace Pizza_API.Controllers
 
         // GET: List of all pizzas
         [HttpGet]
-        public IActionResult GetAllPizzas() 
+        public async Task<ActionResult<IEnumerable<PizzaDto>>> GetAllPizzas() 
         {
-            var pizzas = _pizzaService.GetAllPizzas();
+            var pizzas = await _pizzaService.GetAllPizzasAsync();
 
             return Ok(pizzas);
         }
 
         // GET: Pizza by id
         [HttpGet("{id}")]
-        public IActionResult GetPizzaById(int id) 
+        public async Task<ActionResult<PizzaDto>> GetPizzaById(int id) 
         {
-            var pizza = _pizzaService.GetPizzaById(id);
+            var pizza = await _pizzaService.GetPizzaByIdAsync(id);
             if (pizza == null)
                 return NotFound();
 
@@ -40,9 +37,12 @@ namespace Pizza_API.Controllers
 
         // POST: Create new pizza
         [HttpPost]
-        public IActionResult CreatePizza(CreatePizzaDto dto)
+        public async Task<ActionResult<PizzaDto>> CreatePizza(CreatePizzaDto dto)
         {
-            var createdPizza = _pizzaService.CreatePizza(dto);
+            var createdPizza = await _pizzaService.CreatePizzaAsync(dto);
+
+            if (createdPizza == null)
+                return BadRequest();
 
             return CreatedAtAction(nameof(GetPizzaById),
                 new { id = createdPizza.Id },
@@ -51,9 +51,9 @@ namespace Pizza_API.Controllers
 
         // PUT: Update existing pizza
         [HttpPut("{id}")]
-        public IActionResult UpdatePizza(int id, UpdatePizzaDto dto)
+        public async Task<ActionResult<PizzaDto>> UpdatePizza(int id, UpdatePizzaDto dto)
         {
-            var updated = _pizzaService.UpdatePizza(id, dto);
+            var updated = await _pizzaService.UpdatePizzaAsync(id, dto);
 
             if (updated == null)
                 return NotFound();
@@ -63,9 +63,9 @@ namespace Pizza_API.Controllers
 
         // DELETE: Delete existing pizza
         [HttpDelete("{id}")]
-        public IActionResult DeletePizza(int id)
+        public async Task<IActionResult> DeletePizza(int id)
         {
-            var deleted = _pizzaService.DeletePizza(id);
+            var deleted = await _pizzaService.DeletePizzaAsync(id);
 
             if (!deleted)
                 return NotFound();

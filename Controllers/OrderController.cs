@@ -18,18 +18,18 @@ namespace Pizza_API.Controllers
 
         // GET: List of all orders
         [HttpGet]
-        public IActionResult GetAllOrders()
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders()
         {
-            var orders = _orderService.GetAllOrders();
+            var orders = await _orderService.GetAllOrdersAsync();
 
             return Ok(orders);
         }
 
         // GET: Order by id
         [HttpGet("{id}")]
-        public IActionResult GetOrderById(int id)
+        public async Task<ActionResult<OrderDto>> GetOrderById(int id)
         {
-            var order = _orderService.GetOrderById(id);
+            var order = await _orderService.GetOrderByIdAsync(id);
             if (order == null)
                 return NotFound();
 
@@ -38,9 +38,9 @@ namespace Pizza_API.Controllers
 
         // POST: Create new order
         [HttpPost]
-        public IActionResult CreateOrder(CreateOrderDto dto)
+        public async Task<ActionResult<OrderDto>> CreateOrder(CreateOrderDto dto)
         {
-            var createdOrder = _orderService.CreateOrder(dto);
+            var createdOrder = await _orderService.CreateOrderAsync(dto);
 
             // If invalid pizza id
             if (createdOrder == null)
@@ -53,9 +53,9 @@ namespace Pizza_API.Controllers
 
         // PUT: Update existing order
        [HttpPut("{id}")]
-        public IActionResult UpdateOrder(int id, UpdateOrderDto dto)
+        public async Task<ActionResult<OrderDto>> UpdateOrder(int id, UpdateOrderDto dto)
         {
-            var updated = _orderService.UpdateOrder(id, dto);
+            var updated = await _orderService.UpdateOrderAsync(id, dto);
 
             if (updated == null)
                 return NotFound();
@@ -65,9 +65,9 @@ namespace Pizza_API.Controllers
 
         //DELETE: Delete existing order
         [HttpDelete("{id}")]
-        public IActionResult DeleteOrder(int id)
+        public async Task<IActionResult> DeleteOrder(int id)
         {
-            var deleted = _orderService.DeleteOrder(id);
+            var deleted = await _orderService.DeleteOrderAsync(id);
     
             if (!deleted)
                 return NotFound();

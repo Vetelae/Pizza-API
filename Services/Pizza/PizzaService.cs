@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
+﻿using Microsoft.EntityFrameworkCore;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Pizza;
@@ -15,21 +14,21 @@ namespace Pizza_API.Services
             _dbContext = dbContext;
         }
 
-        public List<PizzaDto> GetAllPizzas()
+        public async Task<List<PizzaDto>> GetAllPizzasAsync()
         {
-            return _dbContext.Pizzas
+            return await _dbContext.Pizzas
                 .Select(p => new PizzaDto
                 {
                     Id = p.Id,
                     Name = p.Name,
                     Value = p.Value
                 })
-                .ToList();
+                .ToListAsync();
         }
 
-        public PizzaDto? GetPizzaById(int id)
+        public async Task<PizzaDto?> GetPizzaByIdAsync(int id)
         {
-            var pizza = _dbContext.Pizzas.Find(id);
+            var pizza = await _dbContext.Pizzas.FindAsync(id);
 
             if (pizza == null) 
                 return null;
@@ -42,7 +41,7 @@ namespace Pizza_API.Services
             };
         }
 
-        public PizzaDto CreatePizza(CreatePizzaDto dto)
+        public async Task<PizzaDto> CreatePizzaAsync(CreatePizzaDto dto)
         {
             var pizza = new Pizza
             {
@@ -51,7 +50,7 @@ namespace Pizza_API.Services
             };
 
             _dbContext.Pizzas.Add(pizza);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             return new PizzaDto
             {
@@ -61,9 +60,9 @@ namespace Pizza_API.Services
             };
         }
 
-        public PizzaDto? UpdatePizza(int id, UpdatePizzaDto dto)
+        public async Task <PizzaDto?> UpdatePizzaAsync(int id, UpdatePizzaDto dto)
         {
-            var pizza = _dbContext.Pizzas.Find(id);
+            var pizza = await _dbContext.Pizzas.FindAsync(id);
             if (pizza == null) 
                 return null;
 
@@ -72,7 +71,7 @@ namespace Pizza_API.Services
             pizza.Value = dto.Value;
 
             // Save changes
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
 
             // Return updated DTO
             return new PizzaDto
@@ -83,14 +82,14 @@ namespace Pizza_API.Services
             };
         }
 
-        public bool DeletePizza(int id)
+        public async Task <bool> DeletePizzaAsync(int id)
         {
-            var pizza = _dbContext.Pizzas.Find(id);
+            var pizza = await _dbContext.Pizzas.FindAsync(id);
             if (pizza == null) 
                 return false;
 
             _dbContext.Pizzas.Remove(pizza);
-            _dbContext.SaveChanges();
+            await _dbContext.SaveChangesAsync();
             return true;
         }
     }
