@@ -9,7 +9,7 @@
 
         // Foreign key to Pizza
         public int PizzaId { get; set; }
-        public Pizza Pizza { get; set; }
+        public MenuItem Pizza { get; set; }
 
         // Foreign key to Order
         public int OrderId { get; set; }

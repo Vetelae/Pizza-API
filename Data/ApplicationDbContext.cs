@@ -8,9 +8,10 @@ namespace Pizza_API.Data
         public ApplicationDbContext(DbContextOptions options) : base(options)
         {
         }
-        public DbSet<Pizza> Pizzas { get; set; }
+        public DbSet<MenuItem> MenuItems { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<News> News { get; set; }
+        public DbSet<Category> Categories { get; set; }
     }
 }
