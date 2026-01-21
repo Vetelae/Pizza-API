@@ -13,7 +13,6 @@ namespace Pizza_API.Services
         {
             _dbContext = dbContext;
         }
-
         public async Task<List<PizzaDto>> GetAllPizzasAsync()
         {
             return await _dbContext.Pizzas
