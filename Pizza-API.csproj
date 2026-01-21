@@ -19,4 +19,10 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.12.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\Admin\" />
+    <Folder Include="Controllers\User\" />
+    <Folder Include="Controllers\Public\" />
+  </ItemGroup>
+
 </Project>

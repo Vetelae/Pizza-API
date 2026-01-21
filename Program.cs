@@ -21,7 +21,7 @@ namespace Pizza_API
             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // Register Services
-            builder.Services.AddScoped<IPizzaService, PizzaService>();
+            builder.Services.AddScoped<IMenuItemService, MenuItemService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<INewsService, NewsService>();
 
