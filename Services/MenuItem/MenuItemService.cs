@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Pizza_API.Data;
 using Pizza_API.Entities;
-using Pizza_API.Entities.Dtos.Pizza;
+using Pizza_API.Entities.Dtos.MenuItem;
 
 
 namespace Pizza_API.Services

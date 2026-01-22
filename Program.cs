@@ -24,6 +24,7 @@ namespace Pizza_API
             builder.Services.AddScoped<IMenuItemService, MenuItemService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<INewsService, NewsService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
 
             var app = builder.Build();
 
