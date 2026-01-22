@@ -6,11 +6,11 @@ namespace Pizza_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class MenuController : ControllerBase
+    public class MenuItemController : ControllerBase
     {
         private readonly IMenuItemService _menuItemService;
 
-        public MenuController(IMenuItemService menuItemService)
+        public MenuItemController(IMenuItemService menuItemService)
         {
             _menuItemService = menuItemService;
         }

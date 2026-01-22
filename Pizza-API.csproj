@@ -23,6 +23,7 @@
     <Folder Include="Controllers\Admin\" />
     <Folder Include="Controllers\User\" />
     <Folder Include="Controllers\Public\" />
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

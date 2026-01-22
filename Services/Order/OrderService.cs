@@ -21,16 +21,16 @@ namespace Pizza_API.Services
         {
             return await _dbContext.Orders
                 .Include(o => o.Items)
-                .ThenInclude(i => i.Pizza)
+                .ThenInclude(i => i.MenuItem)
                 .Select(order => new OrderDto
                 {
                     Id = order.Id,
                     CreatedAt = order.CreatedAt,
                     Items = order.Items.Select(i => new OrderItemDto
                     {
-                        PizzaId = i.PizzaId,
-                        PizzaName = i.Pizza.Name,
-                        PizzaValue = i.Pizza.Value,
+                        MenuItemId = i.MenuItemId,
+                        MenuItemName = i.MenuItem.Name,
+                        MenuItemValue = i.UnitPrice,
                         Quantity = i.Quantity
                     }).ToList()
                 })
@@ -42,7 +42,7 @@ namespace Pizza_API.Services
         {
             var order = await _dbContext.Orders
                 .Include(o => o.Items)
-                .ThenInclude(i => i.Pizza)
+                .ThenInclude(i => i.MenuItem)
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
@@ -54,9 +54,9 @@ namespace Pizza_API.Services
                 CreatedAt = order.CreatedAt,
                 Items = order.Items.Select(i => new OrderItemDto
                 {
-                    PizzaId = i.PizzaId,
-                    PizzaName = i.Pizza.Name,
-                    PizzaValue = i.Pizza.Value,
+                    MenuItemId = i.Id,
+                    MenuItemName = i.MenuItem.Name,
+                    MenuItemValue = i.UnitPrice,
                     Quantity = i.Quantity
                 }).ToList()
             };
@@ -65,17 +65,17 @@ namespace Pizza_API.Services
         // CreateOrder
         public async Task<OrderDto?> CreateOrderAsync(CreateOrderDto dto)
         {
-            // Check all pizzas exist
+            // Check all MenuItems exist
             foreach (var item in dto.Items)
             {
-                var pizzaExists = await _dbContext.Pizzas.AnyAsync(p => p.Id == item.PizzaId);
-                if (!pizzaExists)
+                var menuItemExists = await _dbContext.MenuItems.AnyAsync(m => m.Id == item.MenuItemId);
+                if (!menuItemExists)
                     return null;
             }
 
-            var pizzas = await _dbContext.Pizzas
-                .Where(p => dto.Items.Select(i => i.PizzaId).Contains(p.Id))
-                .ToDictionaryAsync(p => p.Id);
+            var menuItems = await _dbContext.MenuItems
+                .Where(m => dto.Items.Select(i => i.MenuItemId).Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id);
 
             // Create the order
             var order = new Order
@@ -83,8 +83,9 @@ namespace Pizza_API.Services
                 CreatedAt = DateTime.UtcNow,
                 Items = dto.Items.Select(i => new OrderItem
                 {
-                PizzaId = i.PizzaId,
-                Quantity = i.Quantity
+                MenuItemId = i.MenuItemId,
+                Quantity = i.Quantity,
+                UnitPrice = menuItems[i.MenuItemId].Price
                 }).ToList()
             };
 
@@ -97,11 +98,11 @@ namespace Pizza_API.Services
             {
                 Id = order.Id,
                 CreatedAt = order.CreatedAt,
-                Items = dto.Items.Select(i => new OrderItemDto
+                Items = order.Items.Select(i => new OrderItemDto
                 {
-                    PizzaId = i.PizzaId,
-                    PizzaName = pizzas[i.PizzaId].Name,
-                    PizzaValue = pizzas[i.PizzaId].Value,
+                    MenuItemId = i.MenuItemId,
+                    MenuItemName = menuItems[i.MenuItemId].Name,
+                    MenuItemValue = i.UnitPrice,
                     Quantity = i.Quantity
                 }).ToList()
             };
@@ -112,26 +113,25 @@ namespace Pizza_API.Services
             // Load order with items
             var order = await _dbContext.Orders
                 .Include(o => o.Items)
-                .ThenInclude(i => i.Pizza)
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
                 return null;
 
-            // Validate pizzas exist
-            var pizzaIds = dto.Items.Select(i => i.PizzaId).Distinct().ToList();
-            var pizzas = await _dbContext.Pizzas
-                .Where(p => pizzaIds.Contains(p.Id))
-                .ToDictionaryAsync(p => p.Id);
+            // Validate MenuItems exist
+            var menuItemIds = dto.Items.Select(i => i.MenuItemId).Distinct().ToList();
+            var menuItems = await _dbContext.MenuItems
+                .Where(m => menuItemIds.Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id);
 
-            if (pizzas.Count != pizzaIds.Count)
+            if (menuItems.Count != menuItemIds.Count)
                 return null;
 
             // --- UPDATE & ADD ITEMS ---
             foreach (var incomingItem in dto.Items)
             {
                 var existingItem = order.Items
-                    .FirstOrDefault(i => i.PizzaId == incomingItem.PizzaId);
+                    .FirstOrDefault(i => i.MenuItemId == incomingItem.MenuItemId);
 
                 if (existingItem != null)
                 {
@@ -140,20 +140,21 @@ namespace Pizza_API.Services
                 }
                 else
                 {
-                    // Add new pizza to order
+                    // Add new MenuItem to order
                     order.Items.Add(new OrderItem
                     {
-                        PizzaId = incomingItem.PizzaId,
-                        Quantity = incomingItem.Quantity
+                        MenuItemId = incomingItem.MenuItemId,
+                        Quantity = incomingItem.Quantity,
+                        UnitPrice = menuItems[incomingItem.MenuItemId].Price
                     });
                 }
             }
 
             // --- REMOVE DELETED ITEMS ---
-            var incomingPizzaIds = dto.Items.Select(i => i.PizzaId).ToHashSet();
+            var incomingMenuItemIds = dto.Items.Select(i => i.MenuItemId).ToHashSet();
 
             var itemsToRemove = order.Items
-                .Where(i => !incomingPizzaIds.Contains(i.PizzaId))
+                .Where(i => !incomingMenuItemIds.Contains(i.MenuItemId))
                 .ToList();
 
             _dbContext.OrderItems.RemoveRange(itemsToRemove);
@@ -168,9 +169,9 @@ namespace Pizza_API.Services
                 CreatedAt = order.CreatedAt,
                 Items = order.Items.Select(i => new OrderItemDto
                 {
-                    PizzaId = i.PizzaId,
-                    PizzaName = pizzas[i.PizzaId].Name,
-                    PizzaValue = pizzas[i.PizzaId].Value,
+                    MenuItemId = i.MenuItemId,
+                    MenuItemName = menuItems[i.MenuItemId].Name,
+                    MenuItemValue = i.UnitPrice,
                     Quantity = i.Quantity
                 }).ToList()
             };
