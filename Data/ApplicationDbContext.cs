@@ -1,11 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Pizza_API.Entities;
 
 namespace Pizza_API.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext(DbContextOptions options) : base(options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
         {
         }
         public DbSet<MenuItem> MenuItems { get; set; }
@@ -13,5 +15,11 @@ namespace Pizza_API.Data
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<News> News { get; set; }
         public DbSet<Category> Categories { get; set; }
+
+        // Try adding this method
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder); 
+        }
     }
 }
