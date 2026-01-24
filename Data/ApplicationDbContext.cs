@@ -16,7 +16,6 @@ namespace Pizza_API.Data
         public DbSet<News> News { get; set; }
         public DbSet<Category> Categories { get; set; }
 
-        // Try adding this method
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder); 
