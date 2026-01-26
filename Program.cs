@@ -55,6 +55,7 @@ namespace Pizza_API
             builder.Services.AddScoped<INewsService, NewsService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
             var app = builder.Build();
 

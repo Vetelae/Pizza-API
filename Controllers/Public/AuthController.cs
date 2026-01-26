@@ -15,6 +15,7 @@ namespace Pizza_API.Controllers
             _authService = authService;
         }
 
+        // Register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
@@ -28,6 +29,25 @@ namespace Pizza_API.Controllers
             if (!result.Success)
             {
                 return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        // Login
+        [HttpPost("login")]
+        public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _authService.LoginAsync(loginDto);
+
+            if (!result.Success)
+            {
+                return Unauthorized(result);
             }
 
             return Ok(result);
