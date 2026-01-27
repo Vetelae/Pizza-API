@@ -51,10 +51,15 @@ namespace Pizza_API.Services
                 };
             }
 
+            // Generate JWT token
+            var token = await _jwtTokenService.GenerateAccessTokenAsync(user);
+
             return new AuthResponseDto
             {
                 Success = true,
-                Message = "User registered successfully"
+                Message = "User registered successfully",
+                UserId = user.Id,
+                Token = token
             };
         }
 
@@ -105,6 +110,7 @@ namespace Pizza_API.Services
             {
                 Success = true,
                 Message = "Login successful",
+                UserId = user.Id,
                 Token = token
             };
         }
