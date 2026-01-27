@@ -1,3 +1,6 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Auth;
 using Pizza_API.Services;
@@ -9,13 +12,15 @@ namespace Pizza_API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IRefreshTokenService _refreshTokenService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IRefreshTokenService refreshTokenService)
         {
             _authService = authService;
+            _refreshTokenService = refreshTokenService;
         }
 
-        // Register
+        // POST: Register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
@@ -31,10 +36,14 @@ namespace Pizza_API.Controllers
                 return BadRequest(result);
             }
 
+            // Generate refresh token for new user
+            var refreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(result.UserId);
+            result.RefreshToken = refreshToken;
+
             return Ok(result);
         }
 
-        // Login
+        // POST: Login
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
         {
@@ -50,7 +59,62 @@ namespace Pizza_API.Controllers
                 return Unauthorized(result);
             }
 
+            // Generate refresh token
+            var refreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(result.UserId);
+
+            // Attach refresh token to response
+            result.RefreshToken = refreshToken;
+
             return Ok(result);
+        }
+
+        // POST: Refresh
+        [HttpPost("refresh")]
+        public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenRequestDto refreshTokenRequest)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (string.IsNullOrWhiteSpace(refreshTokenRequest.RefreshToken))
+            {
+                return BadRequest(new { message = "Refresh token is required" });
+            }
+
+            var tokens = await _refreshTokenService.ValidateAndRotateAsync(refreshTokenRequest.RefreshToken);
+
+            if (tokens == null)
+            {
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+            }
+
+            // Extract userId from the JWT token or get it from the refresh token
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(tokens.Value.JwtToken);
+            var userId = jwtToken.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
+
+            return Ok(new AuthResponseDto
+            {
+                Success = true,
+                Message = "Token refreshed successfully",
+                UserId = userId,
+                Token = tokens.Value.JwtToken,
+                RefreshToken = tokens.Value.RefreshToken
+            });
+        }
+
+        // POST: Logout
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequestDto refreshTokenRequest)
+        {
+            if (string.IsNullOrWhiteSpace(refreshTokenRequest.RefreshToken))
+            {
+                return BadRequest(new { message = "Refresh token is required" });
+            }
+
+            await _refreshTokenService.RevokeTokenAsync(refreshTokenRequest.RefreshToken);
+            return Ok(new { message = "Logged out successfully" });
         }
     }
 }
