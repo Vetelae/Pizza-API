@@ -1,5 +1,8 @@
+﻿using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.WebUtilities;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Auth;
 
@@ -9,11 +12,20 @@ namespace Pizza_API.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IJwtTokenService _jwtTokenService;
+        private readonly IEmailSenderService _emailSenderService;
+        private readonly IConfiguration _configuration;
 
-        public AuthService(UserManager<ApplicationUser> userManager, IJwtTokenService jwtTokenService)
+
+        public AuthService(
+            UserManager<ApplicationUser> userManager,
+            IJwtTokenService jwtTokenService,
+            IEmailSenderService emailSenderService,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _jwtTokenService = jwtTokenService;
+            _emailSenderService = emailSenderService;
+            _configuration = configuration;
         }
 
         // RegisterAsync
@@ -37,7 +49,8 @@ namespace Pizza_API.Services
                 UserName = registerDto.Email,
                 Email = registerDto.Email,
                 FirstName = registerDto.FirstName,
-                LastName = registerDto.LastName
+                LastName = registerDto.LastName,
+                EmailConfirmed = false
             };
 
             var result = await _userManager.CreateAsync(user, registerDto.Password);
@@ -51,15 +64,38 @@ namespace Pizza_API.Services
                 };
             }
 
-            // Generate JWT token
-            var token = await _jwtTokenService.GenerateAccessTokenAsync(user);
+            // Generate email confirmation token
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+            // Build confirmation link
+            var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
+            var confirmationLink = $"{frontendUrl}/confirm-email?userId={user.Id}&token={encodedToken}";
+
+            // Send confirmation email
+            var emailSubject = "Confirm your email";
+            var emailBody = $@"
+                 <h2>Welcome to Pizza Shop!</h2>
+                 <p>Please confirm your email address by clicking the link below:</p>
+                 <p><a href='{confirmationLink}'>Confirm Email</a></p>
+                 <p>If you didn't create this account, you can safely ignore this email.</p>
+            ";
+
+            try
+            {
+                await _emailSenderService.SendEmailAsync(user.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                
+                Console.WriteLine($"Failed to send confirmation email: {ex.Message}");
+            }
 
             return new AuthResponseDto
             {
                 Success = true,
-                Message = "User registered successfully",
+                Message = "User registered successfully. Please check your email to confirm your account.",
                 UserId = user.Id,
-                Token = token
             };
         }
 
@@ -74,6 +110,16 @@ namespace Pizza_API.Services
                 {
                     Success = false,
                     Message = "Invalid email or password"
+                };
+            }
+
+            // Check if email is confirmed
+            if (!user.EmailConfirmed)
+            {
+                return new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "Please confirm your email before logging in. Check your inbox."
                 };
             }
 
@@ -112,6 +158,53 @@ namespace Pizza_API.Services
                 Message = "Login successful",
                 UserId = user.Id,
                 Token = token
+            };
+        }
+
+        // ConfirmEmailAsync
+        public async Task<AuthResponseDto> ConfirmEmailAsync(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "User not found"
+                };
+            }
+
+            if (user.EmailConfirmed)
+            {
+                return new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "Email already confirmed"
+                };
+            }
+
+            // Decode token
+            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+
+            var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+            if (!result.Succeeded)
+            {
+                return new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "Invalid or expired confirmation token"
+                };
+            }
+
+            // Generate tokens for immediate login
+            var jwtToken = await _jwtTokenService.GenerateAccessTokenAsync(user);
+
+            return new AuthResponseDto
+            {
+                Success = true,
+                Message = "Email confirmed successfully. You are now logged in.",
+                UserId = user.Id,
+                Token = jwtToken
             };
         }
     }

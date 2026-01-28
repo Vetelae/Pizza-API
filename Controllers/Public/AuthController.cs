@@ -36,7 +36,26 @@ namespace Pizza_API.Controllers
                 return BadRequest(result);
             }
 
-            // Generate refresh token for new user
+            return Ok(result);
+        }
+
+        // POST: ConfirmEmail
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+            {
+                return BadRequest(new { message = "User ID and token are required" });
+            }
+
+            var result = await _authService.ConfirmEmailAsync(userId, token);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            // Generate refresh token after email confirmation
             var refreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(result.UserId);
             result.RefreshToken = refreshToken;
 

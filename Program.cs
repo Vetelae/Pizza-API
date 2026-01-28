@@ -57,6 +57,7 @@ namespace Pizza_API
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
             builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+            builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
 
             var app = builder.Build();
 
