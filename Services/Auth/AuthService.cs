@@ -1,10 +1,12 @@
 ﻿using System.Text;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Auth;
+using static System.Net.WebRequestMethods;
 
 namespace Pizza_API.Services
 {
@@ -205,6 +207,108 @@ namespace Pizza_API.Services
                 Message = "Email confirmed successfully. You are now logged in.",
                 UserId = user.Id,
                 Token = jwtToken
+            };
+        }
+
+        // ForgotPasswordAsync
+        public async Task<AuthResponseDto> ForgotPasswordAsync (ForgotPasswordDto forgotPasswordDto)
+        {
+            var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email);
+            
+            if (user == null || !user.EmailConfirmed)
+            {
+                return new AuthResponseDto
+                {
+                    Success = true,
+                    Message = "If an account with that email exists, a password reset link has been sent."
+                };
+            }
+
+            // Generate password reset token
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+            // Build reset link
+            var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
+            var resetLink = $"{frontendUrl}/reset-password?email={Uri.EscapeDataString(user.Email)}&token={encodedToken}";
+
+            // Send password reset email
+            var emailSubject = "Reset your password";
+            var emailBody = $@"
+                <h2>Password Reset Request</h2>
+                <p>You requested to reset your password for your Pizza Shop account.</p>
+                <p>Click the link below to reset your password:</p>
+                <p><a href='{resetLink}'>Reset Password</a></p>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you didn't request this, you can safely ignore this email.</p>
+            ";
+
+            try
+            {
+                await _emailSenderService.SendEmailAsync(user.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send password reset email: {ex.Message}");
+            }
+
+            return new AuthResponseDto
+            {
+                Success = true,
+                Message = "If an account with that email exists, a password reset link has been sent."
+            };
+        }
+
+        // ResetPasswordAsync
+        public async Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+        {
+            var user = await _userManager.FindByEmailAsync(resetPasswordDto.Email);
+
+            if (user == null)
+            {
+                return new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "Invalid password reset request"
+                };
+            }
+
+            // Decode token
+            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(resetPasswordDto.Token));
+
+            // Reset password
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, resetPasswordDto.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                return new AuthResponseDto
+                {
+                    Success = false,
+                    Message = "Invalid or expired reset token"
+                };
+            }
+
+            // Send confirmation email
+            var emailSubject = "Password Changed Successfully";
+            var emailBody = $@"
+                <h2>Password Changed</h2>
+                <p>Your password has been successfully changed.</p>
+                <p>If you didn't make this change, please contact support immediately.</p>
+            ";
+
+            try
+            {
+                await _emailSenderService.SendEmailAsync(user.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send password change confirmation email: {ex.Message}");
+            }
+
+            return new AuthResponseDto
+            {
+                Success = true,
+                Message = "Password has been reset successfully. You can now login with your new password."
             };
         }
     }
