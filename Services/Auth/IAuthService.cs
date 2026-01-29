@@ -7,5 +7,7 @@ namespace Pizza_API.Services
         Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto);
         Task<AuthResponseDto> LoginAsync(LoginDto loginDto);
         Task<AuthResponseDto> ConfirmEmailAsync(string userId, string token);
+        Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto);
+        Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
     }
 }

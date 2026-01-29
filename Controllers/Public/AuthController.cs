@@ -39,7 +39,7 @@ namespace Pizza_API.Controllers
             return Ok(result);
         }
 
-        // POST: ConfirmEmail
+        // POST: Confirm Email
         [HttpPost("confirm-email")]
         public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
         {
@@ -83,6 +83,34 @@ namespace Pizza_API.Controllers
 
             // Attach refresh token to response
             result.RefreshToken = refreshToken;
+
+            return Ok(result);
+        }
+
+        // POST: Forgot password
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _authService.ForgotPasswordAsync(forgotPasswordDto);
+
+            // Always return 200 OK to prevent email enumeration
+            return Ok(result);
+        }
+
+        // POST: Reset password
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _authService.ResetPasswordAsync(resetPasswordDto);
+
+            if (!result.Success)
+                return BadRequest(result);
 
             return Ok(result);
         }
