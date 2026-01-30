@@ -1,12 +1,8 @@
 ﻿using System.Text;
-using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.Data;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Auth;
-using static System.Net.WebRequestMethods;
 
 namespace Pizza_API.Services
 {
@@ -65,6 +61,9 @@ namespace Pizza_API.Services
                     Message = string.Join(", ", result.Errors.Select(e => e.Description))
                 };
             }
+
+            // Assign Guest role to new user
+            await _userManager.AddToRoleAsync(user, "Guest");
 
             // Generate email confirmation token
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
