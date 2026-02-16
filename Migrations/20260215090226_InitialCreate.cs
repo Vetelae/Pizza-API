@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Pizza_API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreateWithIdentity : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -79,19 +79,6 @@ namespace Pizza_API.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_news", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "orders",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_orders", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -201,6 +188,80 @@ namespace Pizza_API.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "carts",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    user_id = table.Column<string>(type: "text", nullable: true),
+                    session_id = table.Column<string>(type: "text", nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_carts", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_carts_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "orders",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    user_id = table.Column<string>(type: "text", nullable: true),
+                    customer_name = table.Column<string>(type: "text", nullable: false),
+                    customer_email = table.Column<string>(type: "text", nullable: false),
+                    customer_phone = table.Column<string>(type: "text", nullable: false),
+                    delivery_address = table.Column<string>(type: "text", nullable: false),
+                    type = table.Column<int>(type: "integer", nullable: false),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    payment_method = table.Column<string>(type: "text", nullable: false),
+                    total_amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    notes = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_orders", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_orders_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "refresh_tokens",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    token = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    user_id = table.Column<string>(type: "text", nullable: false),
+                    created_on_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    expires_on_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    is_revoked = table.Column<bool>(type: "boolean", nullable: false),
+                    revoked_on_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_refresh_tokens", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_refresh_tokens_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "menu_items",
                 columns: table => new
                 {
@@ -208,7 +269,7 @@ namespace Pizza_API.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     name = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: true),
-                    price = table.Column<decimal>(type: "numeric", nullable: false),
+                    price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     is_available = table.Column<bool>(type: "boolean", nullable: false),
                     category_id = table.Column<int>(type: "integer", nullable: false)
                 },
@@ -224,13 +285,42 @@ namespace Pizza_API.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "cart_items",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    quantity = table.Column<int>(type: "integer", nullable: false),
+                    unit_price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    menu_item_id = table.Column<int>(type: "integer", nullable: false),
+                    cart_id = table.Column<int>(type: "integer", nullable: false),
+                    notes = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_cart_items", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_cart_items_carts_cart_id",
+                        column: x => x.cart_id,
+                        principalTable: "carts",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_cart_items_menu_items_menu_item_id",
+                        column: x => x.menu_item_id,
+                        principalTable: "menu_items",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "order_items",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     quantity = table.Column<int>(type: "integer", nullable: false),
-                    unit_price = table.Column<decimal>(type: "numeric", nullable: false),
+                    unit_price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     menu_item_id = table.Column<int>(type: "integer", nullable: false),
                     order_id = table.Column<int>(type: "integer", nullable: false)
                 },
@@ -242,7 +332,7 @@ namespace Pizza_API.Migrations
                         column: x => x.menu_item_id,
                         principalTable: "menu_items",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "fk_order_items_orders_order_id",
                         column: x => x.order_id,
@@ -289,6 +379,27 @@ namespace Pizza_API.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "ix_cart_items_cart_id",
+                table: "cart_items",
+                column: "cart_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_cart_items_menu_item_id",
+                table: "cart_items",
+                column: "menu_item_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_carts_session_id",
+                table: "carts",
+                column: "session_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_carts_user_id",
+                table: "carts",
+                column: "user_id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "ix_menu_items_category_id",
                 table: "menu_items",
                 column: "category_id");
@@ -302,6 +413,22 @@ namespace Pizza_API.Migrations
                 name: "ix_order_items_order_id",
                 table: "order_items",
                 column: "order_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_orders_user_id",
+                table: "orders",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_refresh_tokens_token",
+                table: "refresh_tokens",
+                column: "token",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_refresh_tokens_user_id",
+                table: "refresh_tokens",
+                column: "user_id");
         }
 
         /// <inheritdoc />
@@ -323,16 +450,22 @@ namespace Pizza_API.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "cart_items");
+
+            migrationBuilder.DropTable(
                 name: "news");
 
             migrationBuilder.DropTable(
                 name: "order_items");
 
             migrationBuilder.DropTable(
+                name: "refresh_tokens");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "carts");
 
             migrationBuilder.DropTable(
                 name: "menu_items");
@@ -342,6 +475,9 @@ namespace Pizza_API.Migrations
 
             migrationBuilder.DropTable(
                 name: "categories");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUsers");
         }
     }
 }

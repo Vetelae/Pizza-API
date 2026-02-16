@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Order;
 using Pizza_API.Services;
 
@@ -6,6 +8,7 @@ namespace Pizza_API.Controllers
 {
     [Route("api/admin/orders")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class OrderAdminController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -20,6 +23,15 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders()
         {
             var orders = await _orderService.GetAllOrdersAsync();
+
+            return Ok(orders);
+        }
+
+        // GET: Orders by status
+        [HttpGet("status/{status}")]
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersByStatus(OrderStatus status)
+        {
+            var orders = await _orderService.GetOrdersByStatusAsync(status);
 
             return Ok(orders);
         }

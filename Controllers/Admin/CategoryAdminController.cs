@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Category;
 using Pizza_API.Services;
@@ -6,6 +7,7 @@ namespace Pizza_API.Controllers
 {
     [Route("api/admin/categories")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class CategoryAdminController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
