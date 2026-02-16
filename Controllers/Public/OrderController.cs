@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Order;
 using Pizza_API.Services;
 
@@ -15,6 +16,8 @@ namespace Pizza_API.Controllers
             _orderService = orderService;
         }
 
+        // NOTE: This is intentionally public to allow non registered guests to track their orders
+        // Refactor later by adding security token or code
         // GET: Order by id
         [HttpGet("{id}")]
         public async Task<ActionResult<OrderDto>> GetOrderById(int id)
@@ -30,11 +33,18 @@ namespace Pizza_API.Controllers
         [HttpPost]
         public async Task<ActionResult<OrderDto>> CreateOrder(CreateOrderDto dto)
         {
+            // If user is authenticated, grab their UserId
+            var userId = User.Identity?.IsAuthenticated == true
+                ? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                : null;
+
+            dto.UserId = userId; // Will be null for guests
+
             var createdOrder = await _orderService.CreateOrderAsync(dto);
 
-            // If invalid menuitem id
+            // If invalid items
             if (createdOrder == null)
-                return BadRequest("One or more menu items are invalid.");
+                return BadRequest("Invalid menu items or unavailable items");
 
             return CreatedAtAction(nameof(GetOrderById),
                 new { id = createdOrder.Id },

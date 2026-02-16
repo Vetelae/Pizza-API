@@ -12,8 +12,8 @@ using Pizza_API.Data;
 namespace Pizza_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260127083357_AddRefreshTokens")]
-    partial class AddRefreshTokens
+    [Migration("20260215090226_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -281,6 +281,86 @@ namespace Pizza_API.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Pizza_API.Entities.Cart", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("SessionId")
+                        .HasColumnType("text")
+                        .HasColumnName("session_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_carts");
+
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_carts_session_id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_carts_user_id");
+
+                    b.ToTable("carts", (string)null);
+                });
+
+            modelBuilder.Entity("Pizza_API.Entities.CartItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CartId")
+                        .HasColumnType("integer")
+                        .HasColumnName("cart_id");
+
+                    b.Property<int>("MenuItemId")
+                        .HasColumnType("integer")
+                        .HasColumnName("menu_item_id");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("unit_price");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cart_items");
+
+                    b.HasIndex("CartId")
+                        .HasDatabaseName("ix_cart_items_cart_id");
+
+                    b.HasIndex("MenuItemId")
+                        .HasDatabaseName("ix_cart_items_menu_item_id");
+
+                    b.ToTable("cart_items", (string)null);
+                });
+
             modelBuilder.Entity("Pizza_API.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -328,7 +408,8 @@ namespace Pizza_API.Migrations
                         .HasColumnName("name");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("numeric")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
                         .HasColumnName("price");
 
                     b.HasKey("Id")
@@ -382,8 +463,57 @@ namespace Pizza_API.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("CustomerEmail")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("customer_email");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("customer_name");
+
+                    b.Property<string>("CustomerPhone")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("customer_phone");
+
+                    b.Property<string>("DeliveryAddress")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("delivery_address");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payment_method");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_amount");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
                     b.HasKey("Id")
                         .HasName("pk_orders");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_orders_user_id");
 
                     b.ToTable("orders", (string)null);
                 });
@@ -410,7 +540,8 @@ namespace Pizza_API.Migrations
                         .HasColumnName("quantity");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasColumnType("numeric")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
                         .HasColumnName("unit_price");
 
                     b.HasKey("Id")
@@ -529,6 +660,38 @@ namespace Pizza_API.Migrations
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
                 });
 
+            modelBuilder.Entity("Pizza_API.Entities.Cart", b =>
+                {
+                    b.HasOne("Pizza_API.Entities.ApplicationUser", "User")
+                        .WithOne("Cart")
+                        .HasForeignKey("Pizza_API.Entities.Cart", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_carts_users_user_id");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Pizza_API.Entities.CartItem", b =>
+                {
+                    b.HasOne("Pizza_API.Entities.Cart", "Cart")
+                        .WithMany("CartItems")
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cart_items_carts_cart_id");
+
+                    b.HasOne("Pizza_API.Entities.MenuItem", "MenuItem")
+                        .WithMany()
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cart_items_menu_items_menu_item_id");
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("MenuItem");
+                });
+
             modelBuilder.Entity("Pizza_API.Entities.MenuItem", b =>
                 {
                     b.HasOne("Pizza_API.Entities.Category", "Category")
@@ -541,12 +704,23 @@ namespace Pizza_API.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("Pizza_API.Entities.Order", b =>
+                {
+                    b.HasOne("Pizza_API.Entities.ApplicationUser", "User")
+                        .WithMany("Orders")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_orders_users_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Pizza_API.Entities.OrderItem", b =>
                 {
                     b.HasOne("Pizza_API.Entities.MenuItem", "MenuItem")
                         .WithMany()
                         .HasForeignKey("MenuItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_order_items_menu_items_menu_item_id");
 
@@ -572,6 +746,18 @@ namespace Pizza_API.Migrations
                         .HasConstraintName("fk_refresh_tokens_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Pizza_API.Entities.ApplicationUser", b =>
+                {
+                    b.Navigation("Cart");
+
+                    b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("Pizza_API.Entities.Cart", b =>
+                {
+                    b.Navigation("CartItems");
                 });
 
             modelBuilder.Entity("Pizza_API.Entities.Category", b =>

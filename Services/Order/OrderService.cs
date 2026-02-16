@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Order;
@@ -16,76 +17,123 @@ namespace Pizza_API.Services
             _dbContext = dbContext;
         }
 
+        // Private helper method for the projection
+        private static Expression<Func<Order, OrderDto>> OrderToDto => order => new OrderDto
+        {
+            Id = order.Id,
+            CreatedAt = order.CreatedAt,
+            // Customer info
+            CustomerName = order.CustomerName,
+            CustomerEmail = order.CustomerEmail,
+            CustomerPhone = order.CustomerPhone,
+            DeliveryAddress = order.DeliveryAddress,
+            // Order details
+            Type = order.Type,
+            Status = order.Status,
+            PaymentMethod = order.PaymentMethod,
+            TotalAmount = order.TotalAmount,
+            Notes = order.Notes,
+            UserId = order.UserId,
+            // Items
+            Items = order.Items.Select(i => new OrderItemDto
+            {
+                MenuItemId = i.MenuItemId,
+                MenuItemName = i.MenuItem.Name,
+                MenuItemValue = i.UnitPrice,
+                Quantity = i.Quantity
+            }).ToList()
+        };
+
         // GetAllOrders
         public async Task<List<OrderDto>> GetAllOrdersAsync()
         {
             return await _dbContext.Orders
                 .Include(o => o.Items)
                 .ThenInclude(i => i.MenuItem)
-                .Select(order => new OrderDto
-                {
-                    Id = order.Id,
-                    CreatedAt = order.CreatedAt,
-                    Items = order.Items.Select(i => new OrderItemDto
-                    {
-                        MenuItemId = i.MenuItemId,
-                        MenuItemName = i.MenuItem.Name,
-                        MenuItemValue = i.UnitPrice,
-                        Quantity = i.Quantity
-                    }).ToList()
-                })
-            .ToListAsync();
+                .Select(OrderToDto)
+                .ToListAsync();
+        }
+
+        // GetOrdersByStatus
+        public async Task<List<OrderDto>> GetOrdersByStatusAsync(OrderStatus status)
+        {
+            return await _dbContext.Orders
+                .Where(o => o.Status == status)
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.MenuItem)
+                .Select(OrderToDto)
+                .ToListAsync();
+        }
+
+        // GetOrdersByUser
+        public async Task<List<OrderDto>> GetOrdersByUserAsync(string userId)
+        {
+            return await _dbContext.Orders
+                .Where(o => o.UserId == userId)
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.MenuItem)
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(OrderToDto)
+                .ToListAsync();
         }
 
         // GetOrderById
         public async Task<OrderDto?> GetOrderByIdAsync(int id)
         {
-            var order = await _dbContext.Orders
+            return await _dbContext.Orders
                 .Include(o => o.Items)
-                .ThenInclude(i => i.MenuItem)
-                .FirstOrDefaultAsync(o => o.Id == id);
-
-            if (order == null)
-                return null;
-
-            return new OrderDto
-            {
-                Id = order.Id,
-                CreatedAt = order.CreatedAt,
-                Items = order.Items.Select(i => new OrderItemDto
-                {
-                    MenuItemId = i.Id,
-                    MenuItemName = i.MenuItem.Name,
-                    MenuItemValue = i.UnitPrice,
-                    Quantity = i.Quantity
-                }).ToList()
-            };
+                    .ThenInclude(i => i.MenuItem)
+                .Where(o => o.Id == id)
+                .Select(OrderToDto)
+                .FirstOrDefaultAsync();
         }
 
         // CreateOrder
         public async Task<OrderDto?> CreateOrderAsync(CreateOrderDto dto)
         {
-            // Check all MenuItems exist
-            foreach (var item in dto.Items)
-            {
-                var menuItemExists = await _dbContext.MenuItems.AnyAsync(m => m.Id == item.MenuItemId);
-                if (!menuItemExists)
-                    return null;
-            }
-
+            // Validate all MenuItems exist and are available
+            var menuItemIds = dto.Items.Select(i => i.MenuItemId).Distinct().ToList();
             var menuItems = await _dbContext.MenuItems
-                .Where(m => dto.Items.Select(i => i.MenuItemId).Contains(m.Id))
+                .Where(m => menuItemIds.Contains(m.Id))
                 .ToDictionaryAsync(m => m.Id);
+
+            // Check if all requested items exist
+            if (menuItems.Count != menuItemIds.Count)
+                return null; // Some menu items don't exist
+
+            // Check if items are available
+            var unavailableItems = menuItems.Values.Where(m => !m.IsAvailable).ToList();
+            if (unavailableItems.Any())
+                return null; // Or throw exception with details about unavailable items
+
+            // Calculate total amount
+            decimal totalAmount = dto.Items.Sum(i => menuItems[i.MenuItemId].Price * i.Quantity);
 
             // Create the order
             var order = new Order
             {
                 CreatedAt = DateTime.UtcNow,
+
+                // Customer info (from DTO)
+                UserId = dto.UserId, // null for guest orders
+                CustomerName = dto.CustomerName,
+                CustomerEmail = dto.CustomerEmail,
+                CustomerPhone = dto.CustomerPhone,
+                DeliveryAddress = dto.DeliveryAddress,
+
+                // Order details
+                Type = dto.Type,
+                Status = OrderStatus.Pending,
+                PaymentMethod = dto.PaymentMethod,
+                TotalAmount = totalAmount,
+                Notes = dto.Notes,
+
+                // Order items
                 Items = dto.Items.Select(i => new OrderItem
                 {
-                MenuItemId = i.MenuItemId,
-                Quantity = i.Quantity,
-                UnitPrice = menuItems[i.MenuItemId].Price
+                    MenuItemId = i.MenuItemId,
+                    Quantity = i.Quantity,
+                    UnitPrice = menuItems[i.MenuItemId].Price // Snapshot the price
                 }).ToList()
             };
 
@@ -93,19 +141,15 @@ namespace Pizza_API.Services
             _dbContext.Orders.Add(order);
             await _dbContext.SaveChangesAsync();
 
-            // Map to DTO
-            return new OrderDto
-            {
-                Id = order.Id,
-                CreatedAt = order.CreatedAt,
-                Items = order.Items.Select(i => new OrderItemDto
-                {
-                    MenuItemId = i.MenuItemId,
-                    MenuItemName = menuItems[i.MenuItemId].Name,
-                    MenuItemValue = i.UnitPrice,
-                    Quantity = i.Quantity
-                }).ToList()
-            };
+            // Reload with includes for the DTO mapping
+            var createdOrder = await _dbContext.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.MenuItem)
+                .Where(o => o.Id == order.Id)
+                .Select(OrderToDto)
+                .FirstOrDefaultAsync();
+
+            return createdOrder;
         }
 
         public async Task<OrderDto?> UpdateOrderAsync(int id, UpdateOrderDto dto)
@@ -118,13 +162,32 @@ namespace Pizza_API.Services
             if (order == null)
                 return null;
 
-            // Validate MenuItems exist
+            // Prevent updating completed/cancelled orders
+            if (order.Status == OrderStatus.Completed || order.Status == OrderStatus.Cancelled)
+                return null;
+
+            // Update order-level fields
+            order.CustomerName = dto.CustomerName;
+            order.CustomerEmail = dto.CustomerEmail;
+            order.CustomerPhone = dto.CustomerPhone;
+            order.DeliveryAddress = dto.DeliveryAddress;
+            order.Type = dto.Type;
+            order.Status = dto.Status;
+            order.PaymentMethod = dto.PaymentMethod;
+            order.Notes = dto.Notes;
+
+            // Validate MenuItems exist and are available
             var menuItemIds = dto.Items.Select(i => i.MenuItemId).Distinct().ToList();
             var menuItems = await _dbContext.MenuItems
                 .Where(m => menuItemIds.Contains(m.Id))
                 .ToDictionaryAsync(m => m.Id);
 
             if (menuItems.Count != menuItemIds.Count)
+                return null;
+
+            // Optional: Check availability
+            var unavailableItems = menuItems.Values.Where(m => !m.IsAvailable).ToList();
+            if (unavailableItems.Any())
                 return null;
 
             // --- UPDATE & ADD ITEMS ---
@@ -152,45 +215,44 @@ namespace Pizza_API.Services
 
             // --- REMOVE DELETED ITEMS ---
             var incomingMenuItemIds = dto.Items.Select(i => i.MenuItemId).ToHashSet();
-
             var itemsToRemove = order.Items
                 .Where(i => !incomingMenuItemIds.Contains(i.MenuItemId))
                 .ToList();
 
             _dbContext.OrderItems.RemoveRange(itemsToRemove);
 
+            // Recalculate total amount
+            order.TotalAmount = order.Items.Sum(i => i.UnitPrice * i.Quantity);
+
             // Save changes
             await _dbContext.SaveChangesAsync();
 
-            // Map to DTO
-            return new OrderDto
-            {
-                Id = order.Id,
-                CreatedAt = order.CreatedAt,
-                Items = order.Items.Select(i => new OrderItemDto
-                {
-                    MenuItemId = i.MenuItemId,
-                    MenuItemName = menuItems[i.MenuItemId].Name,
-                    MenuItemValue = i.UnitPrice,
-                    Quantity = i.Quantity
-                }).ToList()
-            };
+            // Reload and map using helper method
+            var updatedOrder = await _dbContext.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.MenuItem)
+                .Where(o => o.Id == order.Id)
+                .Select(OrderToDto)
+                .FirstOrDefaultAsync();
+
+            return updatedOrder;
         }
 
         // DeleteOrder
-        public async Task <bool> DeleteOrderAsync(int id)
+        public async Task<bool> DeleteOrderAsync(int id)
         {
-            var order = await _dbContext.Orders
-                .Include(o => o.Items)
-                .FirstOrDefaultAsync(o => o.Id == id);
+            var order = await _dbContext.Orders.FindAsync(id);
 
             if (order == null)
                 return false;
 
-            _dbContext.OrderItems.RemoveRange(order.Items);
-            _dbContext.Orders.Remove(order);
+            // Prevent deleting completed orders
+            if (order.Status == OrderStatus.Completed)
+                return false;
 
+            _dbContext.Orders.Remove(order);
             await _dbContext.SaveChangesAsync();
+
             return true;
         }
     }
