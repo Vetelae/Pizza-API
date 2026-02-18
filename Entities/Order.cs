@@ -1,19 +1,7 @@
-﻿namespace Pizza_API.Entities
+﻿using Pizza_API.Enums;
+
+namespace Pizza_API.Entities
 {
-    public enum OrderType
-    {
-        Pickup,
-        Delivery
-    }
-    public enum OrderStatus
-    {
-        Pending,
-        Confirmed,
-        Preparing,
-        Ready,
-        Completed,
-        Cancelled
-    }
     public class Order
     {
         public int Id { get; set; }
@@ -36,7 +24,7 @@
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
         // Payment info (fake payment)
-        public string PaymentMethod { get; set; } // "cash" or "card"
+        public PaymentMethod PaymentMethod { get; set; }
         public decimal TotalAmount { get; set; }
 
         // Optional notes

@@ -1,4 +1,5 @@
 ﻿using Pizza_API.Entities.Dtos.OrderItem;
+using Pizza_API.Enums;
 
 namespace Pizza_API.Entities.Dtos.Order
 {
@@ -15,9 +16,9 @@ namespace Pizza_API.Entities.Dtos.Order
 
         // Order details
         public OrderType Type { get; set; }
-        public OrderStatus Status { get; set; }  // IMPORTANT - add this!
-        public string PaymentMethod { get; set; }
-        public decimal TotalAmount { get; set; }  // IMPORTANT - add this!
+        public OrderStatus Status { get; set; }
+        public PaymentMethod PaymentMethod { get; set; }
+        public decimal TotalAmount { get; set; }
         public string? Notes { get; set; }
 
         // For authenticated users 
