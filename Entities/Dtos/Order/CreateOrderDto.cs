@@ -1,4 +1,6 @@
-﻿using Pizza_API.Entities.Dtos.OrderItem;
+﻿using System.ComponentModel.DataAnnotations;
+using Pizza_API.Entities.Dtos.OrderItem;
+using Pizza_API.Enums;
 
 namespace Pizza_API.Entities.Dtos.Order
 {
@@ -14,8 +16,11 @@ namespace Pizza_API.Entities.Dtos.Order
         public string DeliveryAddress { get; set; } = null!;
 
         // Order details
+        [EnumDataType(typeof(OrderType), ErrorMessage = "Type must be either Pickup (0) or Delivery (1)")]
         public OrderType Type { get; set; }
-        public string PaymentMethod { get; set; } = null!; // "cash" or "card"
+
+        [EnumDataType(typeof(PaymentMethod))]
+        public PaymentMethod PaymentMethod { get; set; }
         public string? Notes { get; set; }
 
         // Items to order

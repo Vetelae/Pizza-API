@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Pizza_API.Enums;
 
 namespace Pizza_API.Entities.Dtos.Cart
 {
@@ -22,11 +23,12 @@ namespace Pizza_API.Entities.Dtos.Cart
         [MaxLength(200)]
         public string? DeliveryAddress { get; set; }
 
-        [Required]
+        [EnumDataType(typeof(OrderType))]
         public OrderType Type { get; set; }
 
         [Required]
-        public string PaymentMethod { get; set; } = null!; // "cash" or "card"
+        [EnumDataType(typeof(PaymentMethod))]
+        public PaymentMethod PaymentMethod { get; set; }
 
         [MaxLength(500)]
         public string? Notes { get; set; }

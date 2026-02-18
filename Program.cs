@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +18,11 @@ namespace Pizza_API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers();
-            
+            builder.Services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
+
             builder.Services.AddEndpointsApiExplorer();
 
             // Add OpenAPI with Bearer auth support
