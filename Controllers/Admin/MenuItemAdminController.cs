@@ -34,6 +34,21 @@ namespace Pizza_API.Controllers
             );
         }
 
+        // POST: Upload MenuItem image
+        [HttpPost("{id}/upload-image")]
+        public async Task<IActionResult> UploadImage(int id, IFormFile file)
+        {
+            try
+            {
+                var imagePath = await _menuItemService.UploadMenuItemImageAsync(file, id);
+                return Ok(new { imagePath });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         // PUT: Update existing MenuItem
         [HttpPut("{id}")]
         public async Task<ActionResult<MenuItemDto>> UpdateMenuItem(int id, UpdateMenuItemDto dto)

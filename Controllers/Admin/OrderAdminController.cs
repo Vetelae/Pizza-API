@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Order;
+using Pizza_API.Enums;
 using Pizza_API.Services;
 
 namespace Pizza_API.Controllers
