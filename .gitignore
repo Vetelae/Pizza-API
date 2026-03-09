@@ -3,6 +3,9 @@
 *.user
 *.suo
 
+# Ignore uploaded files
+wwwroot/uploads/
+
 # Build output
 bin/
 obj/
