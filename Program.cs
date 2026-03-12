@@ -143,8 +143,7 @@ namespace Pizza_API
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(
-        Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
-                RequestPath = "/uploads"
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
             });
 
             app.UseCors();
