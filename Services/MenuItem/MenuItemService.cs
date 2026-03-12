@@ -30,8 +30,9 @@ namespace Pizza_API.Services
                     Description = m.Description,
                     Price = m.Price,
                     IsAvailable = m.IsAvailable,
-                    CategoryId  = m.CategoryId
-                }).ToList();
+                    CategoryId  = m.CategoryId,
+                    ImagePath = m.ImagePath
+            }).ToList();
         }
 
         public async Task<MenuItemDto?> GetMenuItemByIdAsync(int id)
@@ -51,6 +52,7 @@ namespace Pizza_API.Services
                 Price = menuItem.Price,
                 IsAvailable = menuItem.IsAvailable,
                 CategoryId = menuItem.CategoryId,
+                ImagePath = menuItem.ImagePath
             };
         }
 
