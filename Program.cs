@@ -45,6 +45,20 @@ namespace Pizza_API
                 });
             });
 
+            // Add CORS
+            var allowedOrigins = builder.Configuration.GetSection("allowedOrigins").Get<string[]>()!;
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(optionsCors =>
+                {
+                    optionsCors.WithOrigins(allowedOrigins)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                });
+            });
+
             // Add DbContext with PostgreSQL
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
@@ -133,6 +147,7 @@ namespace Pizza_API
                 RequestPath = "/uploads"
             });
 
+            app.UseCors();
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
