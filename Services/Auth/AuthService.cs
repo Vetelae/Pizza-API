@@ -70,7 +70,7 @@ namespace Pizza_API.Services
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
             // Build confirmation link
-            var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
+            var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:5173";
             var confirmationLink = $"{frontendUrl}/confirm-email?userId={user.Id}&token={encodedToken}";
 
             // Send confirmation email
@@ -228,7 +228,7 @@ namespace Pizza_API.Services
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
             // Build reset link
-            var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
+            var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:5173";
             var resetLink = $"{frontendUrl}/reset-password?email={Uri.EscapeDataString(user.Email)}&token={encodedToken}";
 
             // Send password reset email

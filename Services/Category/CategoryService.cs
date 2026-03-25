@@ -2,16 +2,19 @@
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Category;
+using SendGrid.Helpers.Errors.Model;
 
 namespace Pizza_API.Services
 {
     public class CategoryService : ICategoryService
     {
         private readonly ApplicationDbContext _dbContext;
-        
-        public CategoryService(ApplicationDbContext dbContext)
+        private readonly IImageService _imageService;
+
+        public CategoryService(ApplicationDbContext dbContext, IImageService imageService)
         {
             _dbContext = dbContext;
+            _imageService = imageService;
         }
 
         public async Task<List<CategoryDto>> GetAllCategoriesAsync()
@@ -20,7 +23,9 @@ namespace Pizza_API.Services
                 .Select(c => new CategoryDto
                 {
                     Id = c.Id,
-                    Name = c.Name
+                    Name = c.Name,
+                    ImagePath = c.ImagePath,
+                    ImageFileName = c.ImageFileName,
                 })
                 .ToListAsync();
         }
@@ -35,7 +40,9 @@ namespace Pizza_API.Services
             return new CategoryDto
             {
                 Id = category.Id,
-                Name = category.Name
+                Name = category.Name,
+                ImagePath = category.ImagePath,
+                ImageFileName = category.ImageFileName
             };
         }
 
@@ -44,6 +51,8 @@ namespace Pizza_API.Services
             var category = new Category
             {
                 Name = dto.Name,
+                ImagePath = "/uploads/default/defaultCategory.png",
+                ImageFileName = "defaultCategory.png"
             };
 
             _dbContext.Categories.Add(category);
@@ -52,7 +61,9 @@ namespace Pizza_API.Services
             return new CategoryDto
             {
                 Id = category.Id,
-                Name = category.Name
+                Name = category.Name,
+                ImagePath = category.ImagePath,
+                ImageFileName = category.ImageFileName
             };
         }
 
@@ -72,8 +83,29 @@ namespace Pizza_API.Services
             return new CategoryDto
             {
                 Id = category.Id,
-                Name = category.Name
+                Name = category.Name,
+                ImagePath = category.ImagePath,
+                ImageFileName = category.ImageFileName
             };
+        }
+
+        public async Task<string> UploadCategoryImageAsync(IFormFile file, int categoryId)
+        {
+            var category = await _dbContext.Categories.FindAsync(categoryId);
+            if (category == null)
+                throw new NotFoundException("Category not found");
+
+            // Delete old image if it's not the default
+            if (category.ImageFileName != "defaultCategory.png")
+                _imageService.DeleteImage(category.ImageFileName, "categories");
+
+            var (imagePath, imageFileName) = await _imageService.UploadImageAsync(file, categoryId.ToString(), "categories");
+
+            category.ImagePath = imagePath;
+            category.ImageFileName = imageFileName;
+            await _dbContext.SaveChangesAsync();
+
+            return imagePath;
         }
 
         public async Task<bool> DeleteCategoryAsync(int id)
@@ -81,6 +113,10 @@ namespace Pizza_API.Services
             var category = await _dbContext.Categories.FindAsync(id);
             if (category == null)
                 return false;
+
+            // Delete image only if it's not the default
+            if (category.ImageFileName != "defaultCategory.png")
+                _imageService.DeleteImage(category.ImageFileName, "categories");
 
             _dbContext.Categories.Remove(category);
             await _dbContext.SaveChangesAsync();

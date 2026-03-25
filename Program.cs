@@ -83,8 +83,8 @@ namespace Pizza_API
                 // User settings
                 options.User.RequireUniqueEmail = true;
 
-                // Email confirmation (false for now, change later)
-                options.SignIn.RequireConfirmedEmail = false;
+                // Email confirmation
+                options.SignIn.RequireConfirmedEmail = true;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
@@ -120,13 +120,18 @@ namespace Pizza_API
             builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
             builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
             builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
+            builder.Services.AddScoped<IImageService, ImageService>();
 
             var app = builder.Build();
+
+            var env = app.Services.GetRequiredService<IWebHostEnvironment>();
 
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
+                DbInitializer.SeedDefaultImages(env);
                 await DbInitializer.SeedRolesAndUsersAsync(services);
+                await DbInitializer.SeedCategoriesAsync(services, env);
             }
 
             if (app.Environment.IsDevelopment())
