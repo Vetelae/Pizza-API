@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Category;
 using Pizza_API.Services;
+using SendGrid.Helpers.Errors.Model;
 
 namespace Pizza_API.Controllers
 {
@@ -64,6 +65,21 @@ namespace Pizza_API.Controllers
                 return NotFound();
 
             return Ok(updated);
+        }
+
+        // POST: Upload category image
+        [HttpPost("{id}/upload-image")]
+        public async Task<IActionResult> UploadCategoryImage(int id, IFormFile file)
+        {
+            try
+            {
+                var imagePath = await _categoryService.UploadCategoryImageAsync(file, id);
+                return Ok(new { imagePath });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // DELETE: Delete existing category
