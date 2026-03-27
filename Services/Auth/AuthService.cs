@@ -153,12 +153,18 @@ namespace Pizza_API.Services
             await _userManager.ResetAccessFailedCountAsync(user);
             var token = await _jwtTokenService.GenerateAccessTokenAsync(user);
 
+            // Get the user's primary role
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "Guest";
+
             return new AuthResponseDto
             {
                 Success = true,
                 Message = "Login successful",
                 UserId = user.Id,
-                Token = token
+                Email = user.Email,
+                Token = token,
+                Role = role
             };
         }
 
@@ -177,10 +183,18 @@ namespace Pizza_API.Services
 
             if (user.EmailConfirmed)
             {
+                var alreadyJwtToken = await _jwtTokenService.GenerateAccessTokenAsync(user);
+                var alreadyRoles = await _userManager.GetRolesAsync(user);
+                var alreadyRole = alreadyRoles.FirstOrDefault() ?? "Guest";
+
                 return new AuthResponseDto
                 {
-                    Success = false,
-                    Message = "Email already confirmed"
+                    Success = true,
+                    Message = "Email already confirmed. You are now logged in.",
+                    UserId = user.Id,
+                    Email = user.Email,
+                    Token = alreadyJwtToken,
+                    Role = alreadyRole
                 };
             }
 
@@ -199,13 +213,17 @@ namespace Pizza_API.Services
 
             // Generate tokens for immediate login
             var jwtToken = await _jwtTokenService.GenerateAccessTokenAsync(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "Guest";
 
             return new AuthResponseDto
             {
                 Success = true,
                 Message = "Email confirmed successfully. You are now logged in.",
                 UserId = user.Id,
-                Token = jwtToken
+                Email = user.Email,
+                Token = jwtToken,
+                Role = role
             };
         }
 

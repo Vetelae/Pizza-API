@@ -1,4 +1,5 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using System.Data;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
@@ -19,7 +20,7 @@ namespace Pizza_API.Services
         }
 
         // GenerateAccessTokenAsync
-        public async Task<string> GenerateAccessTokenAsync(ApplicationUser user)
+        public async Task<string> GenerateAccessTokenAsync(ApplicationUser user, IList<string>? roles = null)
         {
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)
@@ -27,7 +28,7 @@ namespace Pizza_API.Services
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var roles = await _userManager.GetRolesAsync(user);
+            roles ??= await _userManager.GetRolesAsync(user);
 
             var claims = new List<Claim>
             {

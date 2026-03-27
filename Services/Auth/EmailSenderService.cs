@@ -1,5 +1,4 @@
-﻿using SendGrid;
-using SendGrid.Helpers.Mail;
+﻿using Resend;
 
 namespace Pizza_API.Services
 {
@@ -7,44 +6,27 @@ namespace Pizza_API.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<EmailSenderService> _logger;
+        private readonly IResend _resend;
 
-        public EmailSenderService(IConfiguration configuration, ILogger<EmailSenderService> logger)
+        public EmailSenderService(IConfiguration configuration, ILogger<EmailSenderService> logger, IResend resend)
         {
             _configuration = configuration;
             _logger = logger;
+            _resend = resend;
         }
 
         // SendEmailAsync
         public async Task SendEmailAsync(string toEmail, string subject, string htmlMessage)
         {
-            var apiKey = _configuration["SendGrid:ApiKey"];
-
-            if (string.IsNullOrEmpty(apiKey))
+            var message = new EmailMessage
             {
-                _logger.LogError("SendGrid API key is not configured");
-                throw new InvalidOperationException("SendGrid API key is not configured");
-            }
+                From = $"{_configuration["Resend:FromName"]} <{_configuration["Resend:FromEmail"]}>",
+                To = { toEmail },
+                Subject = subject,
+                HtmlBody = htmlMessage,
+            };
 
-            var client = new SendGridClient(apiKey);
-
-            var from = new EmailAddress(
-                _configuration["SendGrid:FromEmail"],
-                _configuration["SendGrid:FromName"]
-                );
-
-            var to = new EmailAddress(toEmail);
-
-            var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent: null, htmlMessage);
-
-            var response = await client.SendEmailAsync(msg);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK &&
-                response.StatusCode != System.Net.HttpStatusCode.Accepted)
-            {
-                _logger.LogError($"Failed to send email to {toEmail}. Status: {response.StatusCode}");
-                throw new Exception($"Failed to send email: {response.StatusCode}");
-            }
-
+            await _resend.EmailSendAsync(message);
             _logger.LogInformation($"Email sent successfully to {toEmail}");
         }
     }
