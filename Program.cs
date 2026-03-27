@@ -10,6 +10,7 @@ using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Services;
 using Scalar.AspNetCore;
+using Resend;
 
 namespace Pizza_API
 {
@@ -25,6 +26,13 @@ namespace Pizza_API
             });
 
             builder.Services.AddEndpointsApiExplorer();
+
+            builder.Services.AddHttpClient<ResendClient>();
+            builder.Services.Configure<ResendClientOptions>(options =>
+            {
+                options.ApiToken = builder.Configuration["Resend:ApiKey"]!;
+            });
+            builder.Services.AddTransient<IResend, ResendClient>();
 
             // Add OpenAPI with Bearer auth support
             builder.Services.AddOpenApi(options =>
