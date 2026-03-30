@@ -2,9 +2,6 @@
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.MenuItem;
-using SendGrid.Helpers.Errors.Model;
-using SendGrid.Helpers.Mail;
-
 
 namespace Pizza_API.Services
 {
@@ -119,11 +116,11 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<string> UploadMenuItemImageAsync(IFormFile file, int menuItemId)
+        public async Task<string?> UploadMenuItemImageAsync(IFormFile file, int menuItemId)
         {
             var menuItem = await _dbContext.MenuItems.FindAsync(menuItemId);
             if (menuItem == null)
-                throw new NotFoundException("MenuItem not found");
+                return null;
 
             // Delete old image if exists
             _imageService.DeleteImage(menuItem.ImageFileName, "menu-items");

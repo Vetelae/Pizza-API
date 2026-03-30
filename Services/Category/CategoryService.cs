@@ -2,7 +2,6 @@
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Category;
-using SendGrid.Helpers.Errors.Model;
 
 namespace Pizza_API.Services
 {
@@ -89,11 +88,11 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<string> UploadCategoryImageAsync(IFormFile file, int categoryId)
+        public async Task<string?> UploadCategoryImageAsync(IFormFile file, int categoryId)
         {
             var category = await _dbContext.Categories.FindAsync(categoryId);
             if (category == null)
-                throw new NotFoundException("Category not found");
+                return null;
 
             // Delete old image if it's not the default
             if (category.ImageFileName != "defaultCategory.png")

@@ -38,15 +38,12 @@ namespace Pizza_API.Controllers
         [HttpPost("{id}/upload-image")]
         public async Task<IActionResult> UploadImage(int id, IFormFile file)
         {
-            try
-            {
-                var imagePath = await _menuItemService.UploadMenuItemImageAsync(file, id);
-                return Ok(new { imagePath });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            var imagePath = await _menuItemService.UploadMenuItemImageAsync(file, id);
+
+            if (imagePath == null)
+                return NotFound(new { error = "MenuItem not found" });
+
+            return Ok(new { imagePath });
         }
 
         // PUT: Update existing MenuItem
