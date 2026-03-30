@@ -9,6 +9,6 @@ namespace Pizza_API.Services
         Task<MenuItemDto> CreateMenuItemAsync(CreateMenuItemDto dto);
         Task<MenuItemDto?> UpdateMenuItemAsync(int id, UpdateMenuItemDto dto);
         Task<bool> DeleteMenuItemAsync(int id);
-        Task<string> UploadMenuItemImageAsync(IFormFile file, int menuItemId);
+        Task<string?> UploadMenuItemImageAsync(IFormFile file, int menuItemId);
     }
 }

@@ -9,6 +9,6 @@ namespace Pizza_API.Services
         Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto dto);
         Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryDto dto);
         Task<bool> DeleteCategoryAsync(int id);
-        Task<string> UploadCategoryImageAsync(IFormFile file, int categoryId);
+        Task<string?> UploadCategoryImageAsync(IFormFile file, int categoryId);
     }
 }
