@@ -56,6 +56,6 @@ namespace Pizza_API.Controllers
                 return NotFound();
 
             return NoContent();
-        }        
+        }
 }
 }
