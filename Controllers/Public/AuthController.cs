@@ -140,12 +140,16 @@ namespace Pizza_API.Controllers
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(tokens.Value.JwtToken);
             var userId = jwtToken.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
+            var email = jwtToken.Claims.First(c => c.Type == ClaimTypes.Email).Value;
+            var role = jwtToken.Claims.First(c => c.Type == ClaimTypes.Role).Value;
 
             return Ok(new AuthResponseDto
             {
                 Success = true,
                 Message = "Token refreshed successfully",
                 UserId = userId,
+                Email = email,
+                Role = role,
                 Token = tokens.Value.JwtToken,
                 RefreshToken = tokens.Value.RefreshToken
             });
