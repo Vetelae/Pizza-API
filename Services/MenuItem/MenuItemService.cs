@@ -122,11 +122,11 @@ namespace Pizza_API.Services
             if (menuItem == null)
                 return null;
 
-            // Delete old image if exists
-            _imageService.DeleteImage(menuItem.ImageFileName, "menu-items");
-
             // Upload new image
             var (imagePath, imageFileName) = await _imageService.UploadImageAsync(file, menuItemId.ToString(), "menu-items");
+
+            // Delete old image if exists
+            _imageService.DeleteImage(menuItem.ImageFileName, "menu-items");
 
             // Update MenuItem in database
             menuItem.ImagePath = imagePath;
