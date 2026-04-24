@@ -24,6 +24,7 @@ namespace Pizza_API.Helpers
             TotalAmount = order.TotalAmount,
             Notes = order.Notes,
             UserId = order.UserId,
+            LookupToken = order.LookupToken,
             // Items
             Items = order.Items.Select(i => new OrderItemDto
             {

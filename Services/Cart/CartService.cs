@@ -289,6 +289,8 @@ namespace Pizza_API.Services
                 TotalAmount = totalAmount,
                 Notes = dto.Notes,
 
+                LookupToken = Guid.NewGuid().ToString("N"),
+
                 // Convert CartItems to OrderItems
                 Items = cart.CartItems.Select(ci => new OrderItem
                 {

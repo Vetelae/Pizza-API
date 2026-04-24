@@ -25,5 +25,6 @@ namespace Pizza_API.Entities.Dtos.Order
         public string? UserId { get; set; }
 
         public List<OrderItemDto> Items { get; set; } = new();
+        public string LookupToken { get; set; } = string.Empty;
     }
 }
