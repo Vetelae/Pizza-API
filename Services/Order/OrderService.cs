@@ -54,7 +54,29 @@ namespace Pizza_API.Services
         }
 
         // GetOrderById
-        public async Task<OrderDto?> GetOrderByIdAsync(int id)
+        public async Task<OrderDto?> GetOrderByIdAsync(int id, string lookupToken)
+        {
+            return await _dbContext.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.MenuItem)
+                .Where(o => o.Id == id && o.LookupToken == lookupToken)
+                .Select(MappingHelper.OrderToDto)
+                .FirstOrDefaultAsync();
+        }
+
+        // GetOrderByIdForUser
+        public async Task<OrderDto?> GetOrderByIdForUserAsync(int id, string userId)
+        {
+            return await _dbContext.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.MenuItem)
+                .Where(o => o.Id == id && o.UserId == userId)
+                .Select(MappingHelper.OrderToDto)
+                .FirstOrDefaultAsync();
+        }
+
+        // GetOrderByIdForAdmin
+        public async Task<OrderDto?> GetOrderByIdForAdminAsync(int id)
         {
             return await _dbContext.Orders
                 .Include(o => o.Items)
@@ -103,6 +125,9 @@ namespace Pizza_API.Services
                 PaymentMethod = dto.PaymentMethod,
                 TotalAmount = totalAmount,
                 Notes = dto.Notes,
+
+                // Security token for guest order tracking
+                LookupToken = Guid.NewGuid().ToString("N"),
 
                 // Order items
                 Items = dto.Items.Select(i => new OrderItem

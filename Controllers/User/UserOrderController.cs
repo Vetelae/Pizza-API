@@ -38,14 +38,10 @@ namespace Pizza_API.Controllers.User
             if (userId == null)
                 return Unauthorized();
 
-            var order = await _orderService.GetOrderByIdAsync(id);
+            var order = await _orderService.GetOrderByIdForUserAsync(id, userId);
 
             if (order == null)
                 return NotFound();
-
-            // Order must belong to this user
-            if (order.UserId != userId)
-                return Forbid();
 
             return Ok(order);
         }

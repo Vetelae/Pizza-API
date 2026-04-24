@@ -16,13 +16,14 @@ namespace Pizza_API.Controllers
             _orderService = orderService;
         }
 
-        // NOTE: This is intentionally public to allow non registered guests to track their orders
-        // Refactor later by adding security token or code
         // GET: Order by id
         [HttpGet("{id}")]
-        public async Task<ActionResult<OrderDto>> GetOrderById(int id)
+        public async Task<ActionResult<OrderDto>> GetOrderById(int id, [FromQuery] string token)
         {
-            var order = await _orderService.GetOrderByIdAsync(id);
+            if (string.IsNullOrWhiteSpace(token))
+                return Unauthorized("Lookup token required");
+
+            var order = await _orderService.GetOrderByIdAsync(id, token);
             if (order == null)
                 return NotFound();
 

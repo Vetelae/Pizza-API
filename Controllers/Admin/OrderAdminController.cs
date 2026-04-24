@@ -40,7 +40,7 @@ namespace Pizza_API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<OrderDto>> GetOrderById(int id)
         {
-            var order = await _orderService.GetOrderByIdAsync(id);
+            var order = await _orderService.GetOrderByIdForAdminAsync(id);
             if (order == null)
                 return NotFound();
 

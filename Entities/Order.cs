@@ -32,5 +32,7 @@ namespace Pizza_API.Entities
 
         // Navigation property
         public List<OrderItem> Items { get; set; } = new();
+
+        public string LookupToken { get; set; } = string.Empty;
     }
 }
