@@ -9,163 +9,154 @@ using Microsoft.OpenApi;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Services;
-using Scalar.AspNetCore;
 using Resend;
+using Scalar.AspNetCore;
 
-namespace Pizza_API
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    public class Program
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
+builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.Configure<ResendClientOptions>(options =>
+{
+    options.ApiToken = builder.Configuration["Resend:ApiKey"]!;
+});
+builder.Services.AddTransient<IResend, ResendClient>();
+
+// Add OpenAPI with Bearer auth support
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, ct) =>
     {
-        public static async Task Main(string[] args)
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>(StringComparer.Ordinal);
+        document.Components.SecuritySchemes.TryAdd("Bearer", new OpenApiSecurityScheme
         {
-            var builder = WebApplication.CreateBuilder(args);
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Enter your JWT token here"
+        });
+        return Task.CompletedTask;
+    });
+});
 
-            builder.Services.AddControllers().AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-            });
+// Add CORS
+var allowedOrigins = builder.Configuration.GetSection("allowedOrigins").Get<string[]>()!;
 
-            builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(optionsCors =>
+    {
+        optionsCors.WithOrigins(allowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
 
-            builder.Services.AddHttpClient<ResendClient>();
-            builder.Services.Configure<ResendClientOptions>(options =>
-            {
-                options.ApiToken = builder.Configuration["Resend:ApiKey"]!;
-            });
-            builder.Services.AddTransient<IResend, ResendClient>();
+// Add DbContext with PostgreSQL
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+    .UseSnakeCaseNamingConvention());
 
-            // Add OpenAPI with Bearer auth support
-            builder.Services.AddOpenApi(options =>
-            {
-                options.AddDocumentTransformer((document, context, ct) =>
-                {
-                    document.Components ??= new OpenApiComponents();
-                    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>(StringComparer.Ordinal);
-                    document.Components.SecuritySchemes.TryAdd("Bearer", new OpenApiSecurityScheme
-                    {
-                        Type = SecuritySchemeType.Http,
-                        Scheme = "bearer",
-                        BearerFormat = "JWT",
-                        In = ParameterLocation.Header,
-                        Description = "Enter your JWT token here"
-                    });
-                    return Task.CompletedTask;
-                });
-            });
+// Add Identity with configuration
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    // Password settings
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
 
-            // Add CORS
-            var allowedOrigins = builder.Configuration.GetSection("allowedOrigins").Get<string[]>()!;
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(
+        builder.Environment.IsDevelopment() ? 3 : 15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
 
-            builder.Services.AddCors(options =>
-            {
-                options.AddDefaultPolicy(optionsCors =>
-                {
-                    optionsCors.WithOrigins(allowedOrigins)
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials();
-                });
-            });
+    // User settings
+    options.User.RequireUniqueEmail = true;
 
-            // Add DbContext with PostgreSQL
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
-                .UseSnakeCaseNamingConvention());
+    // Email confirmation
+    options.SignIn.RequireConfirmedEmail = true;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
-            // Add Identity with configuration
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-            {
-                // Password settings
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequireNonAlphanumeric = true;
-                options.Password.RequiredLength = 8;
+// Override with JWT authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
+    };
+});
 
-                // Lockout settings
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(
-                    builder.Environment.IsDevelopment() ? 3 : 15);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.AllowedForNewUsers = true;
+// Register Services
+builder.Services.AddScoped<IMenuItemService, MenuItemService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<INewsService, NewsService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
+builder.Services.AddScoped<IImageService, ImageService>();
 
-                // User settings
-                options.User.RequireUniqueEmail = true;
+var app = builder.Build();
 
-                // Email confirmation
-                options.SignIn.RequireConfirmedEmail = true;
-            })
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+var env = app.Services.GetRequiredService<IWebHostEnvironment>();
 
-            // Override with JWT authentication
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
-                };
-            });
-
-            // Register Services
-            builder.Services.AddScoped<IMenuItemService, MenuItemService>();
-            builder.Services.AddScoped<IOrderService, OrderService>();
-            builder.Services.AddScoped<ICartService, CartService>();
-            builder.Services.AddScoped<INewsService, NewsService>();
-            builder.Services.AddScoped<ICategoryService, CategoryService>();
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-            builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-            builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
-            builder.Services.AddScoped<IImageService, ImageService>();
-
-            var app = builder.Build();
-
-            var env = app.Services.GetRequiredService<IWebHostEnvironment>();
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                DbInitializer.SeedDefaultImages(env);
-                await DbInitializer.SeedRolesAndUsersAsync(services);
-                await DbInitializer.SeedCategoriesAsync(services, env);
-            }
-
-            if (app.Environment.IsDevelopment())
-            {
-                app.MapOpenApi();
-
-                
-                app.MapScalarApiReference(options =>
-                {
-                    options.Title = "Pizza API";
-                });
-            }
-
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new PhysicalFileProvider(
-                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
-            });
-
-            app.UseCors();
-            app.UseHttpsRedirection();
-            app.UseAuthentication();
-            app.UseAuthorization();
-            app.MapControllers();
-
-            await app.RunAsync();
-        }
-    }
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    DbInitializer.SeedDefaultImages(env);
+    await DbInitializer.SeedRolesAndUsersAsync(services);
+    await DbInitializer.SeedCategoriesAsync(services, env);
 }
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+
+
+    app.MapScalarApiReference(options =>
+    {
+        options.Title = "Pizza API";
+    });
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
+});
+
+app.UseCors();
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+
+await app.RunAsync();
