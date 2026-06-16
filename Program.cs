@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Pizza_API.Data;
 using Pizza_API.Entities;
+using Pizza_API.Exceptions;
 using Pizza_API.Services;
 using Resend;
 using Scalar.AspNetCore;
@@ -124,6 +125,8 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 var app = builder.Build();
 
 var env = app.Services.GetRequiredService<IWebHostEnvironment>();
@@ -153,6 +156,7 @@ app.UseStaticFiles(new StaticFileOptions
     Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
 });
 
+app.UseExceptionHandler();
 app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthentication();
