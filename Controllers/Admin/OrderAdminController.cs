@@ -41,21 +41,14 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<OrderDto>> GetOrderById(int id)
         {
             var order = await _orderService.GetOrderByIdForAdminAsync(id);
-            if (order == null)
-                return NotFound();
-
             return Ok(order);
         }
 
         // PUT: Update existing order
-       [HttpPut("{id}")]
+        [HttpPut("{id}")]
         public async Task<ActionResult<OrderDto>> UpdateOrder(int id, UpdateOrderDto dto)
         {
             var updated = await _orderService.UpdateOrderAsync(id, dto);
-
-            if (updated == null)
-                return NotFound();
-
             return Ok(updated);
         }
 
@@ -63,10 +56,7 @@ namespace Pizza_API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            var deleted = await _orderService.DeleteOrderAsync(id);
-    
-            if (!deleted)
-                return NotFound();
+            await _orderService.DeleteOrderAsync(id);
 
             return NoContent();
         }
