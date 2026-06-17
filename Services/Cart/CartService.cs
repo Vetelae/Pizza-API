@@ -12,7 +12,7 @@ namespace Pizza_API.Services
     public class CartService : ICartService
     {
         private readonly ApplicationDbContext _dbContext;
-        
+
         public CartService(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;

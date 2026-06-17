@@ -21,12 +21,9 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<OrderDto>> GetOrderById(int id, [FromQuery] string token)
         {
             if (string.IsNullOrWhiteSpace(token))
-                return Unauthorized("Lookup token required");
+                return BadRequest("Lookup token required");
 
             var order = await _orderService.GetOrderByIdAsync(id, token);
-            if (order == null)
-                return NotFound();
-
             return Ok(order);
         }
 
@@ -34,18 +31,11 @@ namespace Pizza_API.Controllers
         [HttpPost]
         public async Task<ActionResult<OrderDto>> CreateOrder(CreateOrderDto dto)
         {
-            // If user is authenticated, grab their UserId
-            var userId = User.Identity?.IsAuthenticated == true
+            dto.UserId = User.Identity?.IsAuthenticated == true
                 ? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 : null;
 
-            dto.UserId = userId; // Will be null for guests
-
             var createdOrder = await _orderService.CreateOrderAsync(dto);
-
-            // If invalid items
-            if (createdOrder == null)
-                return BadRequest("Invalid menu items or unavailable items");
 
             return CreatedAtAction(nameof(GetOrderById),
                 new { id = createdOrder.Id },

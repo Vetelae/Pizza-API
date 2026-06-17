@@ -3,6 +3,7 @@ using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Order;
 using Pizza_API.Enums;
+using Pizza_API.Exceptions;
 using Pizza_API.Helpers;
 
 
@@ -51,41 +52,56 @@ namespace Pizza_API.Services
                 .ToListAsync();
         }
 
-        // GetOrderById
-        public async Task<OrderDto?> GetOrderByIdAsync(int id, string lookupToken)
+        // GetOrderById - for guest user
+        public async Task<OrderDto> GetOrderByIdAsync(int id, string lookupToken)
         {
-            return await _dbContext.Orders
+            var order = await _dbContext.Orders
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == id && o.LookupToken == lookupToken)
                 .Select(MappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
+
+            if (order == null)
+                throw new NotFoundException($"Order {id} not found or lookup token is invalid");
+
+            return order;
         }
 
-        // GetOrderByIdForUser
-        public async Task<OrderDto?> GetOrderByIdForUserAsync(int id, string userId)
+        // GetOrderByIdForUser - for authenticated user
+        public async Task<OrderDto> GetOrderByIdForUserAsync(int id, string userId)
         {
-            return await _dbContext.Orders
+            var order = await _dbContext.Orders
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == id && o.UserId == userId)
                 .Select(MappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
+
+            if (order == null)
+                throw new NotFoundException($"Order {id} not found");
+
+            return order;
         }
 
         // GetOrderByIdForAdmin
-        public async Task<OrderDto?> GetOrderByIdForAdminAsync(int id)
+        public async Task<OrderDto> GetOrderByIdForAdminAsync(int id)
         {
-            return await _dbContext.Orders
+            var order = await _dbContext.Orders
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == id)
                 .Select(MappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
+
+            if (order == null)
+                throw new NotFoundException($"Order {id} not found");
+
+            return order;
         }
 
         // CreateOrder
-        public async Task<OrderDto?> CreateOrderAsync(CreateOrderDto dto)
+        public async Task<OrderDto> CreateOrderAsync(CreateOrderDto dto)
         {
             // Validate all MenuItems exist and are available
             var menuItemIds = dto.Items.Select(i => i.MenuItemId).Distinct().ToList();
@@ -94,13 +110,17 @@ namespace Pizza_API.Services
                 .ToDictionaryAsync(m => m.Id);
 
             // Check if all requested items exist
-            if (menuItems.Count != menuItemIds.Count)
-                return null; // Some menu items don't exist
+            var missingIds = menuItemIds.Except(menuItems.Keys).ToList();
+            if (missingIds.Any())
+                throw new NotFoundException($"Menu items not found: {string.Join(", ", missingIds)}");
 
             // Check if items are available
-            var unavailableItems = menuItems.Values.Where(m => !m.IsAvailable).ToList();
+            var unavailableItems = menuItems.Values
+                .Where(m => !m.IsAvailable)
+                .Select(m => m.Name)
+                .ToList();
             if (unavailableItems.Any())
-                return null; // Or throw exception with details about unavailable items
+                throw new ValidationException($"Items are currently unavailable: {string.Join(", ", unavailableItems)}");
 
             // Calculate total amount
             decimal totalAmount = dto.Items.Sum(i => menuItems[i.MenuItemId].Price * i.Quantity);
@@ -148,10 +168,13 @@ namespace Pizza_API.Services
                 .Select(MappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
 
+            if (createdOrder is null)
+                throw new InvalidOperationException($"Order {order.Id} was created but could not be reloaded.");
+
             return createdOrder;
         }
 
-        public async Task<OrderDto?> UpdateOrderAsync(int id, UpdateOrderDto dto)
+        public async Task<OrderDto> UpdateOrderAsync(int id, UpdateOrderDto dto)
         {
             // Load order with items
             var order = await _dbContext.Orders
@@ -159,11 +182,11 @@ namespace Pizza_API.Services
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
-                return null;
+                throw new NotFoundException($"Order {id} not found");
 
             // Prevent updating completed/cancelled orders
             if (order.Status == OrderStatus.Completed || order.Status == OrderStatus.Cancelled)
-                return null;
+                throw new ConflictException($"Order {id} cannot be modified because it is already {order.Status}");
 
             // Update order-level fields
             order.CustomerName = dto.CustomerName;
@@ -181,13 +204,17 @@ namespace Pizza_API.Services
                 .Where(m => menuItemIds.Contains(m.Id))
                 .ToDictionaryAsync(m => m.Id);
 
-            if (menuItems.Count != menuItemIds.Count)
-                return null;
+            var missingIds = menuItemIds.Except(menuItems.Keys).ToList();
+            if (missingIds.Any())
+                throw new NotFoundException($"Menu items not found: {string.Join(", ", missingIds)}");
 
             // Optional: Check availability
-            var unavailableItems = menuItems.Values.Where(m => !m.IsAvailable).ToList();
+            var unavailableItems = menuItems.Values
+                .Where(m => !m.IsAvailable)
+                .Select(m => m.Name)
+                .ToList();
             if (unavailableItems.Any())
-                return null;
+                throw new ValidationException($"Items are currently unavailable: {string.Join(", ", unavailableItems)}");
 
             // --- UPDATE & ADD ITEMS ---
             foreach (var incomingItem in dto.Items)
@@ -234,25 +261,26 @@ namespace Pizza_API.Services
                 .Select(MappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
 
+            if (updatedOrder is null)
+                throw new InvalidOperationException($"Order {order.Id} was updated but could not be reloaded.");
+
             return updatedOrder;
         }
 
         // DeleteOrder
-        public async Task<bool> DeleteOrderAsync(int id)
+        public async Task DeleteOrderAsync(int id)
         {
             var order = await _dbContext.Orders.FindAsync(id);
 
             if (order == null)
-                return false;
+                throw new NotFoundException($"Order {id} not found");
 
             // Prevent deleting completed orders
             if (order.Status == OrderStatus.Completed)
-                return false;
+                throw new ConflictException($"Order {id} cannot be deleted because it is already {order.Status}");
 
             _dbContext.Orders.Remove(order);
             await _dbContext.SaveChangesAsync();
-
-            return true;
         }
     }
 }
