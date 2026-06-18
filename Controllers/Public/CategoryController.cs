@@ -29,9 +29,6 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<CategoryDto>> GetCategoryById(int id)
         {
             var category = await _categoryService.GetCategoryByIdAsync(id);
-            if (category == null)
-                return NotFound();
-
             return Ok(category);
         }
     }

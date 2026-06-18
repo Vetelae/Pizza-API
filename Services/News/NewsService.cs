@@ -8,10 +8,10 @@ namespace Pizza_API.Services
     public class NewsService : INewsService
     {
         private readonly ApplicationDbContext _dbContext;
-        
+
         public NewsService(ApplicationDbContext dbContext)
         {
-            _dbContext = dbContext; 
+            _dbContext = dbContext;
         }
 
         public async Task<List<NewsDto>> GetAllNewsAsync()
@@ -91,7 +91,7 @@ namespace Pizza_API.Services
         public async Task<bool> DeleteNewsAsync(int id)
         {
             var news = await _dbContext.News.FindAsync(id);
-            if (news == null) 
+            if (news == null)
                 return false;
 
             _dbContext.News.Remove(news);

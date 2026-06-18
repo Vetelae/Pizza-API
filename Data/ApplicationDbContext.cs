@@ -75,6 +75,13 @@ namespace Pizza_API.Data
                 .HasForeignKey(oi => oi.MenuItemId)
                 .OnDelete(DeleteBehavior.Restrict); // Don't delete menu items if in orders
 
+            // MenuItem - Category relationship
+            builder.Entity<Category>()
+                .HasMany(c => c.MenuItems)
+                .WithOne(m => m.Category)
+                .HasForeignKey(m => m.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Decimal precision for prices
             builder.Entity<MenuItem>()
                 .Property(m => m.Price)

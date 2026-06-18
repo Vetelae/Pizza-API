@@ -2,6 +2,7 @@
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Category;
+using Pizza_API.Exceptions;
 
 namespace Pizza_API.Services
 {
@@ -29,12 +30,12 @@ namespace Pizza_API.Services
                 .ToListAsync();
         }
 
-        public async Task<CategoryDto?> GetCategoryByIdAsync(int id)
+        public async Task<CategoryDto> GetCategoryByIdAsync(int id)
         {
             var category = await _dbContext.Categories.FindAsync(id);
 
             if (category == null)
-                return null;
+                throw new NotFoundException($"Category {id} not found");
 
             return new CategoryDto
             {
@@ -47,9 +48,19 @@ namespace Pizza_API.Services
 
         public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto dto)
         {
+            // Trim name to avoid whitespace
+            var normalizedName = dto.Name.Trim();
+
+            // Check if category name exists
+            var nameExists = await _dbContext.Categories
+                .AnyAsync(c => c.Name.ToLower() == normalizedName.ToLower());
+
+            if (nameExists)
+                throw new ConflictException($"A category with the name '{normalizedName}' already exists.");
+
             var category = new Category
             {
-                Name = dto.Name,
+                Name = normalizedName,
                 ImagePath = "/uploads/default/defaultCategory.png",
                 ImageFileName = "defaultCategory.png"
             };
@@ -66,14 +77,24 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryDto dto)
+        public async Task<CategoryDto> UpdateCategoryAsync(int id, UpdateCategoryDto dto)
         {
             var category = await _dbContext.Categories.FindAsync(id);
             if (category == null)
-                return null;
+                throw new NotFoundException($"Category {id} not found");
+
+            // Trim name to avoid whitespace
+            var normalizedName = dto.Name.Trim();
+
+            // Check if category name exists
+            var nameExists = await _dbContext.Categories
+                .AnyAsync(c => c.Id != id && c.Name.ToLower() == normalizedName.ToLower());
+
+            if (nameExists)
+                throw new ConflictException($"A category with the name '{normalizedName}' already exists.");
 
             // Update the entity
-            category.Name = dto.Name;
+            category.Name = normalizedName;
 
             // Save changes
             await _dbContext.SaveChangesAsync();
@@ -88,17 +109,17 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<string?> UploadCategoryImageAsync(IFormFile file, int categoryId)
+        public async Task<string> UploadCategoryImageAsync(IFormFile file, int categoryId)
         {
             var category = await _dbContext.Categories.FindAsync(categoryId);
             if (category == null)
-                return null;
+                throw new NotFoundException($"Category {categoryId} not found");
+
+            var (imagePath, imageFileName) = await _imageService.UploadImageAsync(file, categoryId.ToString(), "categories");
 
             // Delete old image if it's not the default
             if (category.ImageFileName != "defaultCategory.png")
                 _imageService.DeleteImage(category.ImageFileName, "categories");
-
-            var (imagePath, imageFileName) = await _imageService.UploadImageAsync(file, categoryId.ToString(), "categories");
 
             category.ImagePath = imagePath;
             category.ImageFileName = imageFileName;
@@ -107,11 +128,17 @@ namespace Pizza_API.Services
             return imagePath;
         }
 
-        public async Task<bool> DeleteCategoryAsync(int id)
+        public async Task DeleteCategoryAsync(int id)
         {
             var category = await _dbContext.Categories.FindAsync(id);
+
             if (category == null)
-                return false;
+                throw new NotFoundException($"Category {id} not found");
+
+            var hasMenuItems = await _dbContext.MenuItems.AnyAsync(m => m.CategoryId == id);
+
+            if (hasMenuItems)
+                throw new ConflictException($"Cannot delete category {id} because it has associated menu items.");
 
             // Delete image only if it's not the default
             if (category.ImageFileName != "defaultCategory.png")
@@ -119,7 +146,6 @@ namespace Pizza_API.Services
 
             _dbContext.Categories.Remove(category);
             await _dbContext.SaveChangesAsync();
-            return true;
         }
     }
 }
