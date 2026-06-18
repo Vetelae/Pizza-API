@@ -11,11 +11,11 @@ namespace Pizza_API.Controllers.User
     [Authorize]
     public class UserOrderController : ControllerBase
     {
-        private readonly IOrderService _orderService;
+        private readonly IUserOrderService _userOrderService;
 
-        public UserOrderController(IOrderService orderService)
+        public UserOrderController(IUserOrderService userOrderService)
         {
-            _orderService = orderService;
+            _userOrderService = userOrderService;
         }
 
         // GET: api/user/orders - Get current user's order history
@@ -26,7 +26,7 @@ namespace Pizza_API.Controllers.User
             if (userId == null)
                 return Unauthorized();
 
-            var orders = await _orderService.GetOrdersByUserAsync(userId);
+            var orders = await _userOrderService.GetOrdersByUserAsync(userId);
             return Ok(orders);
         }
 
@@ -38,7 +38,7 @@ namespace Pizza_API.Controllers.User
             if (userId == null)
                 return Unauthorized();
 
-            var order = await _orderService.GetOrderByIdForUserAsync(id, userId);
+            var order = await _userOrderService.GetOrderByIdForUserAsync(id, userId);
             return Ok(order);
         }
     }

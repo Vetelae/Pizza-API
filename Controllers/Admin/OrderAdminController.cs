@@ -11,18 +11,18 @@ namespace Pizza_API.Controllers
     [Authorize(Roles = "Admin")]
     public class OrderAdminController : ControllerBase
     {
-        private readonly IOrderService _orderService;
+        private readonly IOrderAdminService _orderAdminService;
 
-        public OrderAdminController(IOrderService orderService)
+        public OrderAdminController(IOrderAdminService orderAdminService)
         {
-            _orderService = orderService;
+            _orderAdminService = orderAdminService;
         }
 
         // GET: List of all orders
         [HttpGet]
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders()
         {
-            var orders = await _orderService.GetAllOrdersAsync();
+            var orders = await _orderAdminService.GetAllOrdersAsync();
 
             return Ok(orders);
         }
@@ -31,7 +31,7 @@ namespace Pizza_API.Controllers
         [HttpGet("status/{status}")]
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersByStatus(OrderStatus status)
         {
-            var orders = await _orderService.GetOrdersByStatusAsync(status);
+            var orders = await _orderAdminService.GetOrdersByStatusAsync(status);
 
             return Ok(orders);
         }
@@ -40,7 +40,7 @@ namespace Pizza_API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<OrderDto>> GetOrderById(int id)
         {
-            var order = await _orderService.GetOrderByIdForAdminAsync(id);
+            var order = await _orderAdminService.GetOrderByIdForAdminAsync(id);
             return Ok(order);
         }
 
@@ -48,7 +48,7 @@ namespace Pizza_API.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<OrderDto>> UpdateOrder(int id, UpdateOrderDto dto)
         {
-            var updated = await _orderService.UpdateOrderAsync(id, dto);
+            var updated = await _orderAdminService.UpdateOrderAsync(id, dto);
             return Ok(updated);
         }
 
@@ -56,7 +56,7 @@ namespace Pizza_API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            await _orderService.DeleteOrderAsync(id);
+            await _orderAdminService.DeleteOrderAsync(id);
 
             return NoContent();
         }
