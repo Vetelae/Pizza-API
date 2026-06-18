@@ -116,6 +116,8 @@ builder.Services.AddAuthentication(options =>
 // Register Services
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderAdminService, OrderAdminService>();
+builder.Services.AddScoped<IUserOrderService, UserOrderService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<INewsService, NewsService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
