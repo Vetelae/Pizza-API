@@ -52,7 +52,7 @@ namespace Pizza_API.Controllers
             return Ok(updated);
         }
 
-        //DELETE: Delete existing order
+        // DELETE: Delete existing order
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {

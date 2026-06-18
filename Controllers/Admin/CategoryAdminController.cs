@@ -23,9 +23,6 @@ namespace Pizza_API.Controllers
         {
             var createdCategory = await _categoryService.CreateCategoryAsync(dto);
 
-            if (createdCategory == null)
-                return BadRequest();
-
             return CreatedAtAction(
                 actionName: "GetCategoryById",
                 controllerName: "Category",
@@ -39,10 +36,6 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<CategoryDto>> UpdateCategory(int id, UpdateCategoryDto dto)
         {
             var updated = await _categoryService.UpdateCategoryAsync(id, dto);
-
-            if (updated == null)
-                return NotFound();
-
             return Ok(updated);
         }
 
@@ -51,10 +44,6 @@ namespace Pizza_API.Controllers
         public async Task<IActionResult> UploadCategoryImage(int id, IFormFile file)
         {
             var imagePath = await _categoryService.UploadCategoryImageAsync(file, id);
-
-            if (imagePath == null)
-                return NotFound(new { error = "Category not found" });
-
             return Ok(new { imagePath });
         }
 
@@ -62,10 +51,7 @@ namespace Pizza_API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            var deleted = await _categoryService.DeleteCategoryAsync(id);
-
-            if (!deleted)
-                return NotFound();
+            await _categoryService.DeleteCategoryAsync(id);
 
             return NoContent();
         }

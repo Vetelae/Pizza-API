@@ -22,14 +22,14 @@ namespace Pizza_API.Services
                 .ToListAsync();
 
             return menuItems.Select(m => new MenuItemDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Description = m.Description,
-                    Price = m.Price,
-                    IsAvailable = m.IsAvailable,
-                    CategoryId  = m.CategoryId,
-                    ImagePath = m.ImagePath
+            {
+                Id = m.Id,
+                Name = m.Name,
+                Description = m.Description,
+                Price = m.Price,
+                IsAvailable = m.IsAvailable,
+                CategoryId = m.CategoryId,
+                ImagePath = m.ImagePath
             }).ToList();
         }
 
@@ -39,14 +39,14 @@ namespace Pizza_API.Services
                 .Include(m => m.Category)
                 .SingleOrDefaultAsync(m => m.Id == id);
 
-            if (menuItem == null) 
+            if (menuItem == null)
                 return null;
 
             return new MenuItemDto
             {
                 Id = menuItem.Id,
                 Name = menuItem.Name,
-                Description= menuItem.Description,
+                Description = menuItem.Description,
                 Price = menuItem.Price,
                 IsAvailable = menuItem.IsAvailable,
                 CategoryId = menuItem.CategoryId,
@@ -54,7 +54,7 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<MenuItemDto> CreateMenuItemAsync(CreateMenuItemDto dto)
+        public async Task<MenuItemDto?> CreateMenuItemAsync(CreateMenuItemDto dto)
         {
             var category = await _dbContext.Categories.FindAsync(dto.CategoryId);
             if (category == null)
@@ -85,13 +85,13 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task <MenuItemDto?> UpdateMenuItemAsync(int id, UpdateMenuItemDto dto)
+        public async Task<MenuItemDto?> UpdateMenuItemAsync(int id, UpdateMenuItemDto dto)
         {
             var menuItem = await _dbContext.MenuItems
-                .Include(m =>  m.Category)
+                .Include(m => m.Category)
                 .SingleOrDefaultAsync(m => m.Id == id);
 
-            if (menuItem == null) 
+            if (menuItem == null)
                 return null;
 
             // Update the entity
