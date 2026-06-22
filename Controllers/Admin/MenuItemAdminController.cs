@@ -23,9 +23,6 @@ namespace Pizza_API.Controllers
         {
             var createdMenuItem = await _menuItemService.CreateMenuItemAsync(dto);
 
-            if (createdMenuItem == null)
-                return BadRequest();
-
             return CreatedAtAction(
                 actionName: "GetMenuItemById",
                 controllerName: "MenuItem",
@@ -39,10 +36,6 @@ namespace Pizza_API.Controllers
         public async Task<IActionResult> UploadImage(int id, IFormFile file)
         {
             var imagePath = await _menuItemService.UploadMenuItemImageAsync(file, id);
-
-            if (imagePath == null)
-                return NotFound(new { error = "MenuItem not found" });
-
             return Ok(new { imagePath });
         }
 
@@ -51,10 +44,6 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<MenuItemDto>> UpdateMenuItem(int id, UpdateMenuItemDto dto)
         {
             var updated = await _menuItemService.UpdateMenuItemAsync(id, dto);
-
-            if (updated == null)
-                return NotFound();
-
             return Ok(updated);
         }
 
@@ -62,11 +51,7 @@ namespace Pizza_API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMenuItem(int id)
         {
-            var deleted = await _menuItemService.DeleteMenuItemAsync(id);
-
-            if (!deleted)
-                return NotFound();
-
+            await _menuItemService.DeleteMenuItemAsync(id);
             return NoContent();
         }
     }

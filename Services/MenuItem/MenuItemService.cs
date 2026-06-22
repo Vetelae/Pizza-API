@@ -2,6 +2,7 @@
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.MenuItem;
+using Pizza_API.Exceptions;
 
 namespace Pizza_API.Services
 {
@@ -33,14 +34,14 @@ namespace Pizza_API.Services
             }).ToList();
         }
 
-        public async Task<MenuItemDto?> GetMenuItemByIdAsync(int id)
+        public async Task<MenuItemDto> GetMenuItemByIdAsync(int id)
         {
             var menuItem = await _dbContext.MenuItems
                 .Include(m => m.Category)
                 .SingleOrDefaultAsync(m => m.Id == id);
 
             if (menuItem == null)
-                return null;
+                throw new NotFoundException($"MenuItem {id} not found");
 
             return new MenuItemDto
             {
@@ -54,11 +55,14 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<MenuItemDto?> CreateMenuItemAsync(CreateMenuItemDto dto)
+        public async Task<MenuItemDto> CreateMenuItemAsync(CreateMenuItemDto dto)
         {
             var category = await _dbContext.Categories.FindAsync(dto.CategoryId);
             if (category == null)
-                return null;
+                throw new NotFoundException($"Category {dto.CategoryId} not found");
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ValidationException("MenuItem name is required.");
 
             var menuItem = new MenuItem
             {
@@ -81,18 +85,26 @@ namespace Pizza_API.Services
                 Description = menuItem.Description,
                 Price = menuItem.Price,
                 IsAvailable = menuItem.IsAvailable,
-                CategoryId = menuItem.CategoryId
+                CategoryId = menuItem.CategoryId,
+                ImagePath = menuItem.ImagePath
             };
         }
 
-        public async Task<MenuItemDto?> UpdateMenuItemAsync(int id, UpdateMenuItemDto dto)
+        public async Task<MenuItemDto> UpdateMenuItemAsync(int id, UpdateMenuItemDto dto)
         {
             var menuItem = await _dbContext.MenuItems
                 .Include(m => m.Category)
                 .SingleOrDefaultAsync(m => m.Id == id);
 
             if (menuItem == null)
-                return null;
+                throw new NotFoundException($"MenuItem {id} not found");
+
+            var category = await _dbContext.Categories.FindAsync(dto.CategoryId);
+            if (category == null)
+                throw new NotFoundException($"Category {dto.CategoryId} not found");
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ValidationException("MenuItem name is required.");
 
             // Update the entity
             menuItem.Name = dto.Name;
@@ -112,54 +124,55 @@ namespace Pizza_API.Services
                 Description = menuItem.Description,
                 Price = menuItem.Price,
                 IsAvailable = menuItem.IsAvailable,
-                CategoryId = menuItem.CategoryId
+                CategoryId = menuItem.CategoryId,
+                ImagePath = menuItem.ImagePath
             };
         }
 
-        public async Task<string?> UploadMenuItemImageAsync(IFormFile file, int menuItemId)
+        public async Task<string> UploadMenuItemImageAsync(IFormFile file, int menuItemId)
         {
             var menuItem = await _dbContext.MenuItems.FindAsync(menuItemId);
             if (menuItem == null)
-                return null;
+                throw new NotFoundException($"MenuItem {menuItemId} not found");
+
+            var oldImageFileName = menuItem.ImageFileName;
 
             // Upload new image
             var (imagePath, imageFileName) = await _imageService.UploadImageAsync(file, menuItemId.ToString(), "menu-items");
-
-            // Delete old image if exists
-            _imageService.DeleteImage(menuItem.ImageFileName, "menu-items");
 
             // Update MenuItem in database
             menuItem.ImagePath = imagePath;
             menuItem.ImageFileName = imageFileName;
             await _dbContext.SaveChangesAsync();
 
+            // Only delete old image after DB save succeeds
+            _imageService.DeleteImage(oldImageFileName, "menu-items");
+
             return imagePath;
         }
 
-        public async Task<bool> DeleteMenuItemAsync(int id)
+        public async Task DeleteMenuItemAsync(int id)
         {
             var menuItem = await _dbContext.MenuItems
                 .Include(m => m.Category)
                 .SingleOrDefaultAsync(m => m.Id == id);
 
             if (menuItem == null)
-                return false;
+                throw new NotFoundException($"MenuItem {id} not found");
+
+            _dbContext.MenuItems.Remove(menuItem);
 
             try
             {
-                // Delete image file if it exists
-                _imageService.DeleteImage(menuItem.ImageFileName, "menu-items");
-
-                // Delete from database
-                _dbContext.MenuItems.Remove(menuItem);
                 await _dbContext.SaveChangesAsync();
-                return true;
             }
-            catch (Exception ex)
+            catch (DbUpdateException)
             {
-                Console.WriteLine($"Error deleting menu item: {ex.Message}");
-                return false;
+                throw new ConflictException($"MenuItem {id} cannot be deleted because it is referenced elsewhere.");
             }
+
+            // Delete image file only after the DB delete succeeds
+            _imageService.DeleteImage(menuItem.ImageFileName, "menu-items");
         }
     }
 }
