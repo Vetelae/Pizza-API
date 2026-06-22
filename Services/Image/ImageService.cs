@@ -1,4 +1,5 @@
-﻿
+﻿using Pizza_API.Exceptions;
+
 namespace Pizza_API.Services
 {
     public class ImageService : IImageService
@@ -8,15 +9,15 @@ namespace Pizza_API.Services
         public async Task<(string imagePath, string imageFileName)> UploadImageAsync(IFormFile file, string id, string uploadSubFolder)
         {
             if (file == null || file.Length == 0)
-                throw new ArgumentException("File is empty");
+                throw new ValidationException("File is empty");
 
             var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
             if (!allowedTypes.Contains(file.ContentType))
-                throw new ArgumentException("Invalid file type. Allowed types: JPEG, PNG, WebP");
+                throw new ValidationException("Invalid file type. Allowed types: JPEG, PNG, WebP");
 
             const long maxFileSize = 5 * 1024 * 1024;
             if (file.Length > maxFileSize)
-                throw new ArgumentException("File too large. Maximum size is 5MB");
+                throw new ValidationException("File too large. Maximum size is 5MB");
 
             var uploadFolder = Path.Combine(_baseUploadFolder, uploadSubFolder);
             Directory.CreateDirectory(uploadFolder);

@@ -17,7 +17,7 @@ namespace Pizza_API.Controllers
 
         // GET: List of all MenuItems
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MenuItemDto>>> GetAllMenuItems() 
+        public async Task<ActionResult<IEnumerable<MenuItemDto>>> GetAllMenuItems()
         {
             var menuItems = await _menuItemService.GetAllMenuItemsAsync();
 
@@ -26,12 +26,9 @@ namespace Pizza_API.Controllers
 
         // GET: MenuItem by id
         [HttpGet("{id}")]
-        public async Task<ActionResult<MenuItemDto>> GetMenuItemById(int id) 
+        public async Task<ActionResult<MenuItemDto>> GetMenuItemById(int id)
         {
             var menuItem = await _menuItemService.GetMenuItemByIdAsync(id);
-            if (menuItem == null)
-                return NotFound();
-
             return Ok(menuItem);
         }
     }
