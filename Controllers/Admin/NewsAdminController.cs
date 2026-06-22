@@ -23,9 +23,6 @@ namespace Pizza_API.Controllers
         {
             var createdNews = await _newsService.CreateNewsAsync(dto);
 
-            if (createdNews == null)
-                return BadRequest();
-
             return CreatedAtAction(
                 actionName: "GetNewsById",
                 controllerName: "News",
@@ -40,9 +37,6 @@ namespace Pizza_API.Controllers
         {
             var updated = await _newsService.UpdateNewsAsync(id, dto);
 
-            if (updated == null)
-                return NotFound();
-
             return Ok(updated);
         }
 
@@ -50,12 +44,9 @@ namespace Pizza_API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNews(int id)
         {
-            var deleted = await _newsService.DeleteNewsAsync(id);
-
-            if (!deleted)
-                return NotFound();
+            await _newsService.DeleteNewsAsync(id);
 
             return NoContent();
         }
-}
+    }
 }
