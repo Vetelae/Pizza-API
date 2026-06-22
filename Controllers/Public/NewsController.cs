@@ -29,9 +29,6 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<NewsDto>> GetNewsById(int id)
         {
             var news = await _newsService.GetNewsByIdAsync(id);
-            if (news == null)
-                return NotFound();
-
             return Ok(news);
         }
     }

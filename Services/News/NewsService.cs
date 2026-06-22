@@ -2,6 +2,7 @@
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.News;
+using Pizza_API.Exceptions;
 
 namespace Pizza_API.Services
 {
@@ -27,12 +28,12 @@ namespace Pizza_API.Services
                 .ToListAsync();
         }
 
-        public async Task<NewsDto?> GetNewsByIdAsync(int id)
+        public async Task<NewsDto> GetNewsByIdAsync(int id)
         {
             var news = await _dbContext.News.FindAsync(id);
 
             if (news == null)
-                return null;
+                throw new NotFoundException($"News {id} not found");
 
             return new NewsDto
             {
@@ -45,6 +46,9 @@ namespace Pizza_API.Services
 
         public async Task<NewsDto> CreateNewsAsync(CreateNewsDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                throw new ValidationException("Title is required.");
+
             var news = new News
             {
                 Date = dto.Date,
@@ -64,11 +68,14 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<NewsDto?> UpdateNewsAsync(int id, UpdateNewsDto dto)
+        public async Task<NewsDto> UpdateNewsAsync(int id, UpdateNewsDto dto)
         {
             var news = await _dbContext.News.FindAsync(id);
             if (news == null)
-                return null;
+                throw new NotFoundException($"News {id} not found");
+
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                throw new ValidationException("Title is required.");
 
             // Update the entity
             news.Date = dto.Date;
@@ -88,15 +95,14 @@ namespace Pizza_API.Services
             };
         }
 
-        public async Task<bool> DeleteNewsAsync(int id)
+        public async Task DeleteNewsAsync(int id)
         {
             var news = await _dbContext.News.FindAsync(id);
             if (news == null)
-                return false;
+                throw new NotFoundException($"News {id} not found");
 
             _dbContext.News.Remove(news);
             await _dbContext.SaveChangesAsync();
-            return true;
         }
     }
 }
