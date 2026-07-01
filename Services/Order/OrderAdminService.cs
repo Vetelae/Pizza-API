@@ -23,7 +23,7 @@ namespace Pizza_API.Services
             return await _dbContext.Orders
                 .Include(o => o.Items)
                 .ThenInclude(i => i.MenuItem)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .ToListAsync();
         }
 
@@ -34,7 +34,7 @@ namespace Pizza_API.Services
                 .Where(o => o.Status == status)
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .ToListAsync();
         }
 
@@ -45,7 +45,7 @@ namespace Pizza_API.Services
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == id)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
 
             if (order == null)
@@ -138,7 +138,7 @@ namespace Pizza_API.Services
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == order.Id)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
 
             if (updatedOrder is null)

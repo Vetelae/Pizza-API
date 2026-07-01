@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Cart;
 using Pizza_API.Entities.Dtos.CartItem;
 using Pizza_API.Helpers;
@@ -26,10 +25,6 @@ namespace Pizza_API.Controllers.Public
 
             var cart = await _cartService.GetCartAsync(userId, sessionId);
 
-            // Return empty cart response instead of 404
-            if (cart == null)
-                return Ok(new CartDto());
-
             return Ok(cart);
         }
 
@@ -39,13 +34,7 @@ namespace Pizza_API.Controllers.Public
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
 
-            if (userId == null && sessionId == null)
-                return BadRequest("Session ID or authentication required");
-
             var cart = await _cartService.AddItemToCartAsync(userId, sessionId, dto);
-
-            if (cart == null)
-                return BadRequest("Menu item not found or unavailable");
 
             return Ok(cart);
         }
@@ -56,13 +45,7 @@ namespace Pizza_API.Controllers.Public
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
 
-            if (userId == null && sessionId == null)
-                return BadRequest("Session ID or authentication required");
-
             var cart = await _cartService.UpdateCartItemAsync(userId, sessionId, cartItemId, dto);
-
-            if (cart == null)
-                return NotFound("Cart or item not found");
 
             return Ok(cart);
         }
@@ -73,13 +56,7 @@ namespace Pizza_API.Controllers.Public
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
 
-            if (userId == null && sessionId == null)
-                return BadRequest("Session ID or authentication required");
-
             var cart = await _cartService.RemoveCartItemAsync(userId, sessionId, cartItemId);
-
-            if (cart == null)
-                return NotFound("Cart or item not found");
 
             return Ok(cart);
         }
@@ -90,13 +67,7 @@ namespace Pizza_API.Controllers.Public
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
 
-            if (userId == null && sessionId == null)
-                return BadRequest("Session ID or authentication required");
-
-            var result = await _cartService.ClearCartAsync(userId, sessionId);
-
-            if (!result)
-                return NotFound("Cart not found");
+            await _cartService.ClearCartAsync(userId, sessionId);
 
             return NoContent();
         }
@@ -107,13 +78,7 @@ namespace Pizza_API.Controllers.Public
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
 
-            if (userId == null && sessionId == null)
-                return BadRequest("Session ID or authentication required");
-
             var order = await _cartService.CheckoutAsync(userId, sessionId, dto);
-
-            if (order == null)
-                return BadRequest("Checkout failed. Cart may be empty or items unavailable");
 
             // Return the created order
             return CreatedAtAction(
