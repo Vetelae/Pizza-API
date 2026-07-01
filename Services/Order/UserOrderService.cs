@@ -23,7 +23,7 @@ namespace Pizza_API.Services
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .OrderByDescending(o => o.CreatedAt)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .ToListAsync();
         }
 
@@ -34,7 +34,7 @@ namespace Pizza_API.Services
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == id && o.UserId == userId)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
 
             if (order == null)

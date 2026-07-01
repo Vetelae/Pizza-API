@@ -5,6 +5,7 @@ using Pizza_API.Entities.Dtos.Cart;
 using Pizza_API.Entities.Dtos.CartItem;
 using Pizza_API.Entities.Dtos.Order;
 using Pizza_API.Enums;
+using Pizza_API.Exceptions;
 using Pizza_API.Helpers;
 
 namespace Pizza_API.Services
@@ -18,39 +19,12 @@ namespace Pizza_API.Services
             _dbContext = dbContext;
         }
 
-        // Helper method for mapping
-        private static CartDto MapCartToDto(Cart cart)
-        {
-            var items = cart.CartItems.Select(ci => new CartItemDto
-            {
-                Id = ci.Id,
-                MenuItemId = ci.MenuItemId,
-                MenuItemName = ci.MenuItem.Name,
-                UnitPrice = ci.UnitPrice,
-                Quantity = ci.Quantity,
-                Notes = ci.Notes,
-                Total = ci.UnitPrice * ci.Quantity
-            }).ToList();
-
-            return new CartDto
-            {
-                Id = cart.Id,
-                UserId = cart.UserId,
-                SessionId = cart.SessionId,
-                CreatedAt = cart.CreatedAt,
-                UpdatedAt = cart.UpdatedAt,
-                Items = items,
-                TotalItems = items.Sum(i => i.Quantity),
-                Subtotal = items.Sum(i => i.Total)
-            };
-        }
-
         // GetCart
-        public async Task<CartDto?> GetCartAsync(string? userId, string? sessionId)
+        public async Task<CartDto> GetCartAsync(string? userId, string? sessionId)
         {
             // Must have either userId or sessionId
             if (userId == null && sessionId == null)
-                return null;
+                throw new ValidationException("UserId or SessionId is required.");
 
             // Find cart by userId or sessionId
             var cart = await _dbContext.Carts
@@ -60,26 +34,25 @@ namespace Pizza_API.Services
                     (userId != null && c.UserId == userId) ||
                     (sessionId != null && c.SessionId == sessionId));
 
-            // No cart found
-            if (cart == null)
-                return null;
-
-            return MapCartToDto(cart);
+            return cart == null ? new CartDto() : CartMappingHelper.CartToDto(cart);
         }
 
         // AddItemToCart
-        public async Task<CartDto?> AddItemToCartAsync(string? userId, string? sessionId, AddCartItemDto dto)
+        public async Task<CartDto> AddItemToCartAsync(string? userId, string? sessionId, AddCartItemDto dto)
         {
             // Must have either userId or sessionId
             if (userId == null && sessionId == null)
-                return null;
+                throw new ValidationException("UserId or SessionId is required.");
 
             // Validate menu item exists and is available
             var menuItem = await _dbContext.MenuItems
                 .FirstOrDefaultAsync(m => m.Id == dto.MenuItemId);
 
-            if (menuItem == null || !menuItem.IsAvailable)
-                return null;
+            if (menuItem == null)
+                throw new NotFoundException($"MenuItem {dto.MenuItemId} not found.");
+
+            if (!menuItem.IsAvailable)
+                throw new ConflictException($"MenuItem {dto.MenuItemId} is not currently available.");
 
             // Find existing cart or create new one
             var cart = await _dbContext.Carts
@@ -128,15 +101,15 @@ namespace Pizza_API.Services
 
             await _dbContext.SaveChangesAsync();
 
-            return MapCartToDto(cart);
+            return CartMappingHelper.CartToDto(cart);
         }
 
         // UpdateCartItem
-        public async Task<CartDto?> UpdateCartItemAsync(string? userId, string? sessionId, int cartItemId, UpdateCartItemDto dto)
+        public async Task<CartDto> UpdateCartItemAsync(string? userId, string? sessionId, int cartItemId, UpdateCartItemDto dto)
         {
             // Must have either userId or sessionId
             if (userId == null && sessionId == null)
-                return null;
+                throw new ValidationException("UserId or SessionId is required.");
 
             // Find cart with items
             var cart = await _dbContext.Carts
@@ -147,7 +120,7 @@ namespace Pizza_API.Services
                     (sessionId != null && c.SessionId == sessionId));
 
             if (cart == null)
-                return null;
+                throw new NotFoundException("Cart not found.");
 
             // Find the specific cart item
             // Security check: item must belong to THIS cart
@@ -155,7 +128,7 @@ namespace Pizza_API.Services
                 .FirstOrDefault(ci => ci.Id == cartItemId);
 
             if (cartItem == null)
-                return null;
+                throw new NotFoundException($"CartItem {cartItemId} not found.");
 
             // Update the item
             cartItem.Quantity = dto.Quantity;
@@ -164,15 +137,15 @@ namespace Pizza_API.Services
 
             await _dbContext.SaveChangesAsync();
 
-            return MapCartToDto(cart);
+            return CartMappingHelper.CartToDto(cart);
         }
 
         // RemoveCartItem
-        public async Task<CartDto?> RemoveCartItemAsync(string? userId, string? sessionId, int cartItemId)
+        public async Task<CartDto> RemoveCartItemAsync(string? userId, string? sessionId, int cartItemId)
         {
             // Must have either userId or sessionId
             if (userId == null && sessionId == null)
-                return null;
+                throw new ValidationException("UserId or SessionId is required.");
 
             // Find cart with items
             var cart = await _dbContext.Carts
@@ -183,7 +156,7 @@ namespace Pizza_API.Services
                     (sessionId != null && c.SessionId == sessionId));
 
             if (cart == null)
-                return null;
+                throw new NotFoundException("Cart not found.");
 
             // Find the specific cart item
             // Security check: item must belong to THIS cart
@@ -191,15 +164,13 @@ namespace Pizza_API.Services
                 .FirstOrDefault(ci => ci.Id == cartItemId);
 
             if (cartItem == null)
-                return null;
+                throw new NotFoundException($"CartItem {cartItemId} not found.");
+
+            // Check if it was the last item before removing
+            var isLastItem = cart.CartItems.Count == 1;
 
             // Remove the item
             _dbContext.CartItems.Remove(cartItem);
-
-            // Check if it was the last item before saving
-            var isLastItem = cart.CartItems.Count == 1;
-
-            await _dbContext.SaveChangesAsync();
 
             // If cart is empty, delete it
             if (isLastItem)
@@ -214,14 +185,14 @@ namespace Pizza_API.Services
             await _dbContext.SaveChangesAsync();
 
             // If cart still has items, return updated cart
-            return MapCartToDto(cart);
+            return CartMappingHelper.CartToDto(cart);
         }
 
         // ClearCart
-        public async Task<bool> ClearCartAsync(string? userId, string? sessionId)
+        public async Task ClearCartAsync(string? userId, string? sessionId)
         {
             if (userId == null && sessionId == null)
-                return false;
+                throw new ValidationException("UserId or SessionId is required.");
 
             var cart = await _dbContext.Carts
                 .Include(c => c.CartItems)
@@ -230,21 +201,19 @@ namespace Pizza_API.Services
                     (sessionId != null && c.SessionId == sessionId));
 
             if (cart == null)
-                return false;
+                return;
 
             // Delete the cart
             _dbContext.Carts.Remove(cart);
             await _dbContext.SaveChangesAsync();
-
-            return true;
         }
 
         // Checkout
-        public async Task<OrderDto?> CheckoutAsync(string? userId, string? sessionId, CheckoutDto dto)
+        public async Task<OrderDto> CheckoutAsync(string? userId, string? sessionId, CheckoutDto dto)
         {
             // Must have either userId or sessionId
             if (userId == null && sessionId == null)
-                return null;
+                throw new ValidationException("UserId or SessionId is required.");
 
             // Find cart with items
             var cart = await _dbContext.Carts
@@ -255,8 +224,11 @@ namespace Pizza_API.Services
                     (sessionId != null && c.SessionId == sessionId));
 
             // No cart found or cart is empty
-            if (cart == null || !cart.CartItems.Any())
-                return null;
+            if (cart == null)
+                throw new NotFoundException("Cart not found.");
+
+            if (!cart.CartItems.Any())
+                throw new ValidationException("CartItem(s) are required.");
 
             // Validate all items are still available
             var unavailableItems = cart.CartItems
@@ -264,7 +236,7 @@ namespace Pizza_API.Services
                 .ToList();
 
             if (unavailableItems.Any())
-                return null;
+                throw new ConflictException("Some CartItem(s) are not available.");
 
             // Calculate total
             var totalAmount = cart.CartItems
@@ -314,8 +286,9 @@ namespace Pizza_API.Services
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == order.Id)
-                .Select(MappingHelper.OrderToDto)
-                .FirstOrDefaultAsync();
+                .Select(OrderMappingHelper.OrderToDto)
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException($"Order {order.Id} was created but could not be reloaded.");
         }
     }
 }

@@ -25,7 +25,7 @@ namespace Pizza_API.Services
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == id && o.LookupToken == lookupToken)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
 
             if (order == null)
@@ -99,7 +99,7 @@ namespace Pizza_API.Services
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == order.Id)
-                .Select(MappingHelper.OrderToDto)
+                .Select(OrderMappingHelper.OrderToDto)
                 .FirstOrDefaultAsync();
 
             if (createdOrder is null)

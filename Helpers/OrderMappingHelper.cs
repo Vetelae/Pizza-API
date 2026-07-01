@@ -5,7 +5,7 @@ using Pizza_API.Entities.Dtos.OrderItem;
 
 namespace Pizza_API.Helpers
 {
-    public class MappingHelper
+    public class OrderMappingHelper
     {
         // Helper method for order mapping
         public static Expression<Func<Order, OrderDto>> OrderToDto => order => new OrderDto
