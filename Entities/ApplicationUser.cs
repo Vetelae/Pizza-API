@@ -1,18 +1,17 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.Extensions.Options;
+using Pizza_API.Constants;
 
 namespace Pizza_API.Entities
 {
     public class ApplicationUser : IdentityUser
     {
         [Required]
-        [MaxLength(50)]
+        [StringLength(AuthConstraints.NameMaxLength, MinimumLength = AuthConstraints.NameMinLength)]
         public string FirstName { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(50)]
+        [StringLength(AuthConstraints.NameMaxLength, MinimumLength = AuthConstraints.NameMinLength)]
         public string LastName { get; set; } = string.Empty;
 
         // Navigation properties

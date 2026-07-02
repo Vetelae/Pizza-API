@@ -69,7 +69,7 @@ namespace Pizza_API.Services
                 CustomerName = dto.CustomerName,
                 CustomerEmail = dto.CustomerEmail,
                 CustomerPhone = dto.CustomerPhone,
-                DeliveryAddress = dto.DeliveryAddress,
+                DeliveryAddress = dto.Type == OrderType.Delivery ? dto.DeliveryAddress : null,
 
                 // Order details
                 Type = dto.Type,

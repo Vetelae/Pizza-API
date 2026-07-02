@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Pizza_API.Constants;
 using Pizza_API.Enums;
 
 namespace Pizza_API.Entities.Dtos.Cart
@@ -6,21 +7,20 @@ namespace Pizza_API.Entities.Dtos.Cart
     public class CheckoutDto
     {
         [Required]
-        [MaxLength(100)]
-        public string CustomerName { get; set; } = null!;
+        [StringLength(OrderConstraints.NameMaxLength, MinimumLength = OrderConstraints.NameMinLength)]
+        public string CustomerName { get; set; } = string.Empty;
 
         [Required]
         [EmailAddress]
-        [MaxLength(100)]
-        public string CustomerEmail { get; set; } = null!;
+        [StringLength(OrderConstraints.EmailMaxLength, MinimumLength = OrderConstraints.EmailMinLength)]
+        public string CustomerEmail { get; set; } = string.Empty;
 
         [Required]
         [Phone]
-        [MaxLength(20)]
-        public string CustomerPhone { get; set; } = null!;
+        [StringLength(OrderConstraints.PhoneMaxLength, MinimumLength = OrderConstraints.PhoneMinLength)]
+        public string CustomerPhone { get; set; } = string.Empty;
 
-        // Only required for delivery
-        [MaxLength(200)]
+        [StringLength(OrderConstraints.AddressMaxLength, MinimumLength = OrderConstraints.AddressMinLength)]
         public string? DeliveryAddress { get; set; }
 
         [EnumDataType(typeof(OrderType))]
@@ -30,7 +30,17 @@ namespace Pizza_API.Entities.Dtos.Cart
         [EnumDataType(typeof(PaymentMethod))]
         public PaymentMethod PaymentMethod { get; set; }
 
-        [MaxLength(500)]
+        [StringLength(OrderConstraints.NotesMaxLength)]
         public string? Notes { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (Type == OrderType.Delivery && string.IsNullOrWhiteSpace(DeliveryAddress))
+            {
+                yield return new ValidationResult(
+                    "Delivery address is required for delivery orders.",
+                    new[] { nameof(DeliveryAddress) });
+            }
+        }
     }
 }

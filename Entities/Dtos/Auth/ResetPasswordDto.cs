@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Pizza_API.Constants;
 
 namespace Pizza_API.Entities.Dtos.Auth
 {
@@ -12,7 +13,7 @@ namespace Pizza_API.Entities.Dtos.Auth
         public string Token { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(8)]
+        [StringLength(AuthConstraints.PasswordMaxLength, MinimumLength = AuthConstraints.PasswordMinLength)]
         public string NewPassword { get; set; } = string.Empty;
 
         [Required]

@@ -17,7 +17,7 @@ namespace Pizza_API.Entities
         public string CustomerPhone { get; set; }
 
         // Delivery information
-        public string DeliveryAddress { get; set; }
+        public string? DeliveryAddress { get; set; }
         public OrderType Type { get; set; } // Delivery or Pickup
 
         // Order status tracking

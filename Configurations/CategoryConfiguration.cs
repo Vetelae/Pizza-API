@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Pizza_API.Constants;
 using Pizza_API.Entities;
 
 namespace Pizza_API.Configurations
@@ -12,6 +13,10 @@ namespace Pizza_API.Configurations
                 .WithOne(m => m.Category)
                 .HasForeignKey(m => m.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(c => c.Name)
+                .HasMaxLength(CategoryConstraints.NameMaxLength)
+                .IsRequired();
         }
     }
 }

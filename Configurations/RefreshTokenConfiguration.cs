@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Pizza_API.Constants;
 using Pizza_API.Entities;
 
 namespace Pizza_API.Configurations
@@ -15,6 +16,13 @@ namespace Pizza_API.Configurations
 
             builder.HasIndex(rt => rt.Token)
                 .IsUnique();
+
+            builder.Property(rt => rt.Token)
+            .HasMaxLength(AuthConstraints.RefreshTokenMaxLength)
+            .IsRequired();
+
+            builder.Property(rt => rt.UserId)
+                .IsRequired();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Pizza_API.Constants;
 using Pizza_API.Entities;
 
 namespace Pizza_API.Configurations
@@ -15,6 +16,24 @@ namespace Pizza_API.Configurations
 
             builder.Property(o => o.TotalAmount)
                 .HasPrecision(18, 2);
+
+            builder.Property(o => o.CustomerName)
+                .HasMaxLength(OrderConstraints.NameMaxLength)
+                .IsRequired();
+
+            builder.Property(o => o.CustomerEmail)
+            .HasMaxLength(OrderConstraints.EmailMaxLength)
+            .IsRequired();
+
+            builder.Property(o => o.CustomerPhone)
+                .HasMaxLength(OrderConstraints.PhoneMaxLength)
+                .IsRequired();
+
+            builder.Property(o => o.DeliveryAddress)
+                .HasMaxLength(OrderConstraints.AddressMaxLength);
+
+            builder.Property(o => o.Notes)
+                .HasMaxLength(OrderConstraints.NotesMaxLength);
         }
     }
 }

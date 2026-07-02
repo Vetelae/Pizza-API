@@ -10,6 +10,7 @@ namespace Pizza_API.Entities.Dtos.News
         [Required]
         [StringLength(NewsConstraints.TitleMaxLength, MinimumLength = NewsConstraints.TitleMinLength)]
         public string Title { get; set; } = string.Empty;
+
         [Required]
         [StringLength(NewsConstraints.ContentMaxLength, MinimumLength = NewsConstraints.ContentMinLength)]
         public string Content { get; set; } = string.Empty;

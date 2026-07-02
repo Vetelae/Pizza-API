@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Pizza_API.Constants;
 using Pizza_API.Entities;
 
 namespace Pizza_API.Configurations
@@ -10,6 +11,9 @@ namespace Pizza_API.Configurations
         {
             builder.Property(ci => ci.UnitPrice)
                 .HasPrecision(18, 2);
+
+            builder.Property(ci => ci.Notes)
+                .HasMaxLength(CartItemConstraints.NotesMaxLength);
         }
     }
 }

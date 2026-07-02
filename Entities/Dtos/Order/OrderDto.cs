@@ -9,10 +9,10 @@ namespace Pizza_API.Entities.Dtos.Order
         public DateTime CreatedAt { get; set; }
 
         // Customer info
-        public string CustomerName { get; set; }
-        public string CustomerEmail { get; set; }
-        public string CustomerPhone { get; set; }
-        public string DeliveryAddress { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+        public string CustomerPhone { get; set; } = string.Empty;
+        public string DeliveryAddress { get; set; } = string.Empty;
 
         // Order details
         public OrderType Type { get; set; }
