@@ -72,7 +72,7 @@ namespace Pizza_API.Services
             order.CustomerName = dto.CustomerName;
             order.CustomerEmail = dto.CustomerEmail;
             order.CustomerPhone = dto.CustomerPhone;
-            order.DeliveryAddress = dto.DeliveryAddress;
+            order.DeliveryAddress = dto.Type == OrderType.Delivery ? dto.DeliveryAddress : null;
             order.Type = dto.Type;
             order.Status = dto.Status;
             order.PaymentMethod = dto.PaymentMethod;

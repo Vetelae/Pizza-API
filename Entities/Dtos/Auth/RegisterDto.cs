@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Pizza_API.Constants;
 
 namespace Pizza_API.Entities.Dtos.Auth
 {
@@ -9,15 +10,15 @@ namespace Pizza_API.Entities.Dtos.Auth
         public string Email { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(8)]
+        [StringLength(AuthConstraints.PasswordMaxLength, MinimumLength = AuthConstraints.PasswordMinLength)]
         public string Password { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(50)]
+        [StringLength(AuthConstraints.NameMaxLength, MinimumLength = AuthConstraints.NameMinLength)]
         public string FirstName { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(50)]
+        [StringLength(AuthConstraints.NameMaxLength, MinimumLength = AuthConstraints.NameMinLength)]
         public string LastName { get; set; } = string.Empty;
     }
 }

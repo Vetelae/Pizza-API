@@ -1,14 +1,14 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Pizza_API.Constants;
 
 namespace Pizza_API.Entities.Dtos.CartItem
 {
     public class UpdateCartItemDto
     {
-        [Required]
-        [Range(1, 99, ErrorMessage = "Quantity must be between 1 and 99")]
+        [Range(CartItemConstraints.QuantityMin, CartItemConstraints.QuantityMax)]
         public int Quantity { get; set; }
 
-        [MaxLength(200)]
+        [StringLength(CartItemConstraints.NotesMaxLength)]
         public string? Notes { get; set; }
     }
 }
