@@ -90,7 +90,7 @@ namespace Pizza_API.Services
             }
             catch (Exception ex)
             {
-                
+
                 Console.WriteLine($"Failed to send confirmation email: {ex.Message}");
             }
 
@@ -170,6 +170,25 @@ namespace Pizza_API.Services
             };
         }
 
+        // GetUserProfileAsync
+        public async Task<UserProfileDto?> GetUserProfileAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return null;
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                Address = user.Address
+            };
+        }
+
         // ConfirmEmailAsync
         public async Task<AuthResponseDto> ConfirmEmailAsync(string userId, string token)
         {
@@ -230,10 +249,10 @@ namespace Pizza_API.Services
         }
 
         // ForgotPasswordAsync
-        public async Task<AuthResponseDto> ForgotPasswordAsync (ForgotPasswordDto forgotPasswordDto)
+        public async Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto)
         {
             var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email);
-            
+
             if (user == null || !user.EmailConfirmed)
             {
                 return new AuthResponseDto
