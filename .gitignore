@@ -27,3 +27,4 @@ packages/
 *.db
 *.db-shm
 *.db-wal
+AGENTS.md

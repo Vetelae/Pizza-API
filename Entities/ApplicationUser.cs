@@ -14,6 +14,12 @@ namespace Pizza_API.Entities
         [StringLength(AuthConstraints.NameMaxLength, MinimumLength = AuthConstraints.NameMinLength)]
         public string LastName { get; set; } = string.Empty;
 
+        [StringLength(OrderConstraints.AddressMaxLength, MinimumLength = OrderConstraints.AddressMinLength)]
+        public string? Address { get; set; }
+
+        [StringLength(OrderConstraints.PhoneMaxLength, MinimumLength = OrderConstraints.PhoneMinLength)]
+        public override string? PhoneNumber { get; set; }
+
         // Navigation properties
         public Cart? Cart { get; set; }  // One-to-one: user's active cart
         public ICollection<Order> Orders { get; set; } = new List<Order>();  // Order history

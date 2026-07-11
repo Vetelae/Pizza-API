@@ -48,6 +48,8 @@ namespace Pizza_API.Services
                 Email = registerDto.Email,
                 FirstName = registerDto.FirstName,
                 LastName = registerDto.LastName,
+                Address = registerDto.Address,
+                PhoneNumber = registerDto.PhoneNumber,
                 EmailConfirmed = false
             };
 
