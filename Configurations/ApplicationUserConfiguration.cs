@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Pizza_API.Constants;
 using Pizza_API.Entities;
 
 namespace Pizza_API.Configurations
@@ -8,6 +9,12 @@ namespace Pizza_API.Configurations
     {
         public void Configure(EntityTypeBuilder<ApplicationUser> builder)
         {
+            builder.Property(u => u.Address)
+                .HasMaxLength(OrderConstraints.AddressMaxLength);
+
+            builder.Property(u => u.PhoneNumber)
+                .HasMaxLength(OrderConstraints.PhoneMaxLength);
+
             builder.HasOne(u => u.Cart)
                 .WithOne(c => c.User)
                 .HasForeignKey<Cart>(c => c.UserId)
