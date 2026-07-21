@@ -109,6 +109,23 @@ namespace Pizza_API.Controllers
             return Ok(profile);
         }
 
+        // PUT: Me
+        [Authorize]
+        [HttpPut("me")]
+        public async Task<ActionResult<UserProfileDto>> UpdateMe([FromBody] UpdateUserProfileDto dto)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            var profile = await _authService.UpdateUserProfileAsync(userId, dto);
+
+            return Ok(profile);
+        }
+
         // POST: Forgot password
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
