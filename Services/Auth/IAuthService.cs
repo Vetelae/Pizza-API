@@ -10,5 +10,6 @@ namespace Pizza_API.Services
         Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto);
         Task<AuthResponseDto> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
         Task<UserProfileDto?> GetUserProfileAsync(string userId);
+        Task<UserProfileDto> UpdateUserProfileAsync(string userId, UpdateUserProfileDto dto);
     }
 }

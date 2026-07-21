@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Auth;
+using Pizza_API.Exceptions;
 
 namespace Pizza_API.Services
 {
@@ -177,6 +178,35 @@ namespace Pizza_API.Services
 
             if (user == null)
                 return null;
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                Address = user.Address
+            };
+        }
+
+        // UpdateUserProfileAsync
+        public async Task<UserProfileDto> UpdateUserProfileAsync(string userId, UpdateUserProfileDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            user.FirstName = dto.FirstName.Trim();
+            user.LastName = dto.LastName.Trim();
+            user.Address = dto.Address?.Trim();
+            user.PhoneNumber = dto.PhoneNumber?.Trim();
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+                throw new ValidationException(string.Join(", ", result.Errors.Select(e => e.Description)));
 
             return new UserProfileDto
             {
