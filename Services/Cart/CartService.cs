@@ -13,10 +13,14 @@ namespace Pizza_API.Services
     public class CartService : ICartService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IOrderNotificationPublisher _notificationPublisher;
 
-        public CartService(ApplicationDbContext dbContext)
+        public CartService(
+            ApplicationDbContext dbContext,
+            IOrderNotificationPublisher notificationPublisher)
         {
             _dbContext = dbContext;
+            _notificationPublisher = notificationPublisher;
         }
 
         // GetCart
@@ -242,11 +246,14 @@ namespace Pizza_API.Services
             var totalAmount = cart.CartItems
                 .Sum(ci => ci.UnitPrice * ci.Quantity);
 
+            var createdAt = DateTime.UtcNow;
+
             // Create order from cart
             var order = new Order
             {
                 UserId = userId,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = createdAt,
+                StatusChangedAt = createdAt,
 
                 // Customer info from checkout form
                 CustomerName = dto.CustomerName,
@@ -282,13 +289,18 @@ namespace Pizza_API.Services
             await _dbContext.SaveChangesAsync();
 
             // Load order with includes and return as OrderDto
-            return await _dbContext.Orders
+            var createdOrder = await _dbContext.Orders
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == order.Id)
                 .Select(OrderMappingHelper.OrderToDto)
                 .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException($"Order {order.Id} was created but could not be reloaded.");
+
+            await _notificationPublisher.OrderCreatedAsync(
+                OrderMappingHelper.ToOrderCardDto(createdOrder));
+
+            return createdOrder;
         }
     }
 }

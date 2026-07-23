@@ -5,7 +5,7 @@ namespace Pizza_API.Services
     public interface IOrderNotificationPublisher
     {
         Task OrderCreatedAsync(OrderCardDto order);
-        Task OrderStatusChangedAsync(OrderStatusChangedDto change);
+        Task OrderStatusChangedAsync(OrderStatusChangedDto change, string? userId);
         Task OrderUpdatedAsync(OrderCardDto order);
     }
 }
