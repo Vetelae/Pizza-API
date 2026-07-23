@@ -6,6 +6,12 @@ namespace Pizza_API.Entities
     {
         public int Id { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime StatusChangedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? ConfirmedAt { get; set; }
+        public DateTime? PreparingAt { get; set; }
+        public DateTime? ReadyAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public DateTime? CancelledAt { get; set; }
 
         // Optional user reference (null for guest orders)
         public string? UserId { get; set; }

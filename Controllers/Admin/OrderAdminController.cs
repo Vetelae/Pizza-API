@@ -27,6 +27,15 @@ namespace Pizza_API.Controllers
             return Ok(orders);
         }
 
+        // GET: Lightweight snapshot for the active order board
+        [HttpGet("active")]
+        public async Task<ActionResult<IEnumerable<OrderCardDto>>> GetActiveOrders()
+        {
+            var orders = await _orderAdminService.GetActiveOrdersAsync();
+
+            return Ok(orders);
+        }
+
         // GET: Orders by status
         [HttpGet("status/{status}")]
         public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersByStatus(OrderStatus status)
@@ -49,6 +58,14 @@ namespace Pizza_API.Controllers
         public async Task<ActionResult<OrderDto>> UpdateOrder(int id, UpdateOrderDto dto)
         {
             var updated = await _orderAdminService.UpdateOrderAsync(id, dto);
+            return Ok(updated);
+        }
+
+        // PATCH: Change order status
+        [HttpPatch("{id}/status")]
+        public async Task<ActionResult<OrderDto>> ChangeOrderStatus(int id, UpdateOrderStatusDto dto)
+        {
+            var updated = await _orderAdminService.ChangeOrderStatusAsync(id, dto);
             return Ok(updated);
         }
 

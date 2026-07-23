@@ -12,10 +12,14 @@ namespace Pizza_API.Services
     public class OrderService : IOrderService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IOrderNotificationPublisher _notificationPublisher;
 
-        public OrderService(ApplicationDbContext dbContext)
+        public OrderService(
+            ApplicationDbContext dbContext,
+            IOrderNotificationPublisher notificationPublisher)
         {
             _dbContext = dbContext;
+            _notificationPublisher = notificationPublisher;
         }
 
         // GetOrderById - for guest user
@@ -59,10 +63,13 @@ namespace Pizza_API.Services
             // Calculate total amount
             decimal totalAmount = dto.Items.Sum(i => menuItems[i.MenuItemId].Price * i.Quantity);
 
+            var createdAt = DateTime.UtcNow;
+
             // Create the order
             var order = new Order
             {
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = createdAt,
+                StatusChangedAt = createdAt,
 
                 // Customer info (from DTO)
                 UserId = dto.UserId, // null for guest orders
@@ -104,6 +111,9 @@ namespace Pizza_API.Services
 
             if (createdOrder is null)
                 throw new InvalidOperationException($"Order {order.Id} was created but could not be reloaded.");
+
+            await _notificationPublisher.OrderCreatedAsync(
+                OrderMappingHelper.ToOrderCardDto(createdOrder));
 
             return createdOrder;
         }

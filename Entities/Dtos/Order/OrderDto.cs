@@ -7,6 +7,12 @@ namespace Pizza_API.Entities.Dtos.Order
     {
         public int Id { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime StatusChangedAt { get; set; }
+        public DateTime? ConfirmedAt { get; set; }
+        public DateTime? PreparingAt { get; set; }
+        public DateTime? ReadyAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public DateTime? CancelledAt { get; set; }
 
         // Customer info
         public string CustomerName { get; set; } = string.Empty;

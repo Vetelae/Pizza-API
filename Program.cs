@@ -9,6 +9,7 @@ using Microsoft.OpenApi;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Exceptions;
+using Pizza_API.Hubs;
 using Pizza_API.Services;
 using Resend;
 using Scalar.AspNetCore;
@@ -18,6 +19,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
+builder.Services.AddSignalR().AddJsonProtocol(options =>
+{
+    options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -111,12 +117,30 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"].ToString();
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken)
+                && path.StartsWithSegments("/hubs/admin/orders"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Register Services
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderAdminService, OrderAdminService>();
+builder.Services.AddScoped<IOrderNotificationPublisher, OrderNotificationPublisher>();
 builder.Services.AddScoped<IUserOrderService, UserOrderService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<INewsService, NewsService>();
@@ -165,5 +189,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<OrderNotificationHub>("/hubs/admin/orders");
 
 await app.RunAsync();
