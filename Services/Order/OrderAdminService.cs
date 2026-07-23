@@ -182,7 +182,7 @@ namespace Pizza_API.Services
                     NewStatus = updatedOrder.Status,
                     ChangedAt = updatedOrder.StatusChangedAt,
                     Order = orderCard
-                });
+                }, updatedOrder.UserId);
             }
             else
             {
@@ -228,7 +228,7 @@ namespace Pizza_API.Services
                     NewStatus = updatedOrder.Status,
                     ChangedAt = updatedOrder.StatusChangedAt,
                     Order = OrderMappingHelper.ToOrderCardDto(updatedOrder)
-                });
+                }, updatedOrder.UserId);
             }
 
             return updatedOrder;

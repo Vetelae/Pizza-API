@@ -124,9 +124,12 @@ builder.Services.AddAuthentication(options =>
         {
             var accessToken = context.Request.Query["access_token"].ToString();
             var path = context.HttpContext.Request.Path;
+            var isOrderHubRequest =
+                path.StartsWithSegments("/hubs/admin/orders") ||
+                path.StartsWithSegments("/hubs/customer/orders");
 
             if (!string.IsNullOrEmpty(accessToken)
-                && path.StartsWithSegments("/hubs/admin/orders"))
+                && isOrderHubRequest)
             {
                 context.Token = accessToken;
             }
@@ -141,6 +144,7 @@ builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderAdminService, OrderAdminService>();
 builder.Services.AddScoped<IOrderNotificationPublisher, OrderNotificationPublisher>();
+builder.Services.AddScoped<ICustomerOrderSubscriptionAuthorizer, CustomerOrderSubscriptionAuthorizer>();
 builder.Services.AddScoped<IUserOrderService, UserOrderService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<INewsService, NewsService>();
@@ -190,5 +194,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<OrderNotificationHub>("/hubs/admin/orders");
+app.MapHub<CustomerOrderNotificationHub>("/hubs/customer/orders");
 
 await app.RunAsync();
