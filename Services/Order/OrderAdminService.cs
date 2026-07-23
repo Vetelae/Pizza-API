@@ -11,19 +11,42 @@ namespace Pizza_API.Services
     public class OrderAdminService : IOrderAdminService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IOrderNotificationPublisher _notificationPublisher;
 
-        public OrderAdminService(ApplicationDbContext dbContext)
+        public OrderAdminService(
+            ApplicationDbContext dbContext,
+            IOrderNotificationPublisher notificationPublisher)
         {
             _dbContext = dbContext;
+            _notificationPublisher = notificationPublisher;
         }
 
         // GetAllOrders
         public async Task<List<OrderDto>> GetAllOrdersAsync()
         {
             return await _dbContext.Orders
+                .AsNoTracking()
                 .Include(o => o.Items)
                 .ThenInclude(i => i.MenuItem)
                 .Select(OrderMappingHelper.OrderToDto)
+                .ToListAsync();
+        }
+
+        public async Task<List<OrderCardDto>> GetActiveOrdersAsync()
+        {
+            var activeStatuses = new[]
+            {
+                OrderStatus.Pending,
+                OrderStatus.Confirmed,
+                OrderStatus.Preparing,
+                OrderStatus.Ready
+            };
+
+            return await _dbContext.Orders
+                .AsNoTracking()
+                .Where(o => activeStatuses.Contains(o.Status))
+                .OrderBy(o => o.CreatedAt)
+                .Select(OrderMappingHelper.OrderToCardDto)
                 .ToListAsync();
         }
 
@@ -31,6 +54,7 @@ namespace Pizza_API.Services
         public async Task<List<OrderDto>> GetOrdersByStatusAsync(OrderStatus status)
         {
             return await _dbContext.Orders
+                .AsNoTracking()
                 .Where(o => o.Status == status)
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
@@ -42,6 +66,7 @@ namespace Pizza_API.Services
         public async Task<OrderDto> GetOrderByIdForAdminAsync(int id)
         {
             var order = await _dbContext.Orders
+                .AsNoTracking()
                 .Include(o => o.Items)
                     .ThenInclude(i => i.MenuItem)
                 .Where(o => o.Id == id)
@@ -68,13 +93,15 @@ namespace Pizza_API.Services
             if (order.Status == OrderStatus.Completed || order.Status == OrderStatus.Cancelled)
                 throw new ConflictException($"Order {id} cannot be modified because it is already {order.Status}");
 
+            var oldStatus = order.Status;
+            var statusChanged = ApplyStatusTransition(order, dto.Status);
+
             // Update order-level fields
             order.CustomerName = dto.CustomerName;
             order.CustomerEmail = dto.CustomerEmail;
             order.CustomerPhone = dto.CustomerPhone;
             order.DeliveryAddress = dto.Type == OrderType.Delivery ? dto.DeliveryAddress : null;
             order.Type = dto.Type;
-            order.Status = dto.Status;
             order.PaymentMethod = dto.PaymentMethod;
             order.Notes = dto.Notes;
 
@@ -144,6 +171,66 @@ namespace Pizza_API.Services
             if (updatedOrder is null)
                 throw new InvalidOperationException($"Order {order.Id} was updated but could not be reloaded.");
 
+            var orderCard = OrderMappingHelper.ToOrderCardDto(updatedOrder);
+
+            if (statusChanged)
+            {
+                await _notificationPublisher.OrderStatusChangedAsync(new OrderStatusChangedDto
+                {
+                    OrderId = updatedOrder.Id,
+                    OldStatus = oldStatus,
+                    NewStatus = updatedOrder.Status,
+                    ChangedAt = updatedOrder.StatusChangedAt,
+                    Order = orderCard
+                });
+            }
+            else
+            {
+                await _notificationPublisher.OrderUpdatedAsync(orderCard);
+            }
+
+            return updatedOrder;
+        }
+
+        public async Task<OrderDto> ChangeOrderStatusAsync(int id, UpdateOrderStatusDto dto)
+        {
+            if (!dto.Status.HasValue)
+                throw new ValidationException("Order status is required");
+
+            var order = await _dbContext.Orders.FindAsync(id);
+
+            if (order == null)
+                throw new NotFoundException($"Order {id} not found");
+
+            var oldStatus = order.Status;
+            var statusChanged = ApplyStatusTransition(order, dto.Status.Value);
+
+            if (statusChanged)
+                await _dbContext.SaveChangesAsync();
+
+            var updatedOrder = await _dbContext.Orders
+                .AsNoTracking()
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.MenuItem)
+                .Where(o => o.Id == order.Id)
+                .Select(OrderMappingHelper.OrderToDto)
+                .FirstOrDefaultAsync();
+
+            if (updatedOrder is null)
+                throw new InvalidOperationException($"Order {order.Id} was updated but could not be reloaded.");
+
+            if (statusChanged)
+            {
+                await _notificationPublisher.OrderStatusChangedAsync(new OrderStatusChangedDto
+                {
+                    OrderId = updatedOrder.Id,
+                    OldStatus = oldStatus,
+                    NewStatus = updatedOrder.Status,
+                    ChangedAt = updatedOrder.StatusChangedAt,
+                    Order = OrderMappingHelper.ToOrderCardDto(updatedOrder)
+                });
+            }
+
             return updatedOrder;
         }
 
@@ -155,12 +242,68 @@ namespace Pizza_API.Services
             if (order == null)
                 throw new NotFoundException($"Order {id} not found");
 
-            // Prevent deleting completed orders
-            if (order.Status == OrderStatus.Completed)
-                throw new ConflictException($"Order {id} cannot be deleted because it is already {order.Status}");
+            if (order.Status != OrderStatus.Cancelled)
+            {
+                throw new ConflictException(
+                    $"Order {id} must be cancelled before it can be deleted");
+            }
 
             _dbContext.Orders.Remove(order);
             await _dbContext.SaveChangesAsync();
+        }
+
+        private static bool ApplyStatusTransition(Order order, OrderStatus newStatus)
+        {
+            if (order.Status == newStatus)
+                return false;
+
+            if (!IsValidStatusTransition(order.Status, newStatus))
+            {
+                throw new ConflictException(
+                    $"Order status cannot be changed from {order.Status} to {newStatus}");
+            }
+
+            var changedAt = DateTime.UtcNow;
+            order.Status = newStatus;
+            order.StatusChangedAt = changedAt;
+
+            switch (newStatus)
+            {
+                case OrderStatus.Confirmed:
+                    order.ConfirmedAt ??= changedAt;
+                    break;
+                case OrderStatus.Preparing:
+                    order.PreparingAt ??= changedAt;
+                    break;
+                case OrderStatus.Ready:
+                    order.ReadyAt ??= changedAt;
+                    break;
+                case OrderStatus.Completed:
+                    order.CompletedAt ??= changedAt;
+                    break;
+                case OrderStatus.Cancelled:
+                    order.CancelledAt ??= changedAt;
+                    break;
+            }
+
+            return true;
+        }
+
+        private static bool IsValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
+        {
+            return currentStatus switch
+            {
+                OrderStatus.Pending =>
+                    newStatus is OrderStatus.Confirmed or OrderStatus.Cancelled,
+                OrderStatus.Confirmed =>
+                    newStatus is OrderStatus.Preparing or OrderStatus.Cancelled,
+                OrderStatus.Preparing =>
+                    newStatus is OrderStatus.Ready or OrderStatus.Cancelled,
+                OrderStatus.Ready =>
+                    newStatus is OrderStatus.Completed or OrderStatus.Cancelled,
+                OrderStatus.Completed or OrderStatus.Cancelled => false,
+                _ => false
+            };
         }
     }
 }

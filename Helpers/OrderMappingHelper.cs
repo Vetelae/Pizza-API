@@ -12,6 +12,12 @@ namespace Pizza_API.Helpers
         {
             Id = order.Id,
             CreatedAt = order.CreatedAt,
+            StatusChangedAt = order.StatusChangedAt,
+            ConfirmedAt = order.ConfirmedAt,
+            PreparingAt = order.PreparingAt,
+            ReadyAt = order.ReadyAt,
+            CompletedAt = order.CompletedAt,
+            CancelledAt = order.CancelledAt,
             // Customer info
             CustomerName = order.CustomerName,
             CustomerEmail = order.CustomerEmail,
@@ -34,5 +40,32 @@ namespace Pizza_API.Helpers
                 Quantity = i.Quantity
             }).ToList()
         };
+
+        public static Expression<Func<Order, OrderCardDto>> OrderToCardDto => order => new OrderCardDto
+        {
+            Id = order.Id,
+            CreatedAt = order.CreatedAt,
+            StatusChangedAt = order.StatusChangedAt,
+            CustomerName = order.CustomerName,
+            Type = order.Type,
+            Status = order.Status,
+            ItemCount = order.Items.Sum(i => i.Quantity),
+            TotalAmount = order.TotalAmount
+        };
+
+        public static OrderCardDto ToOrderCardDto(OrderDto order)
+        {
+            return new OrderCardDto
+            {
+                Id = order.Id,
+                CreatedAt = order.CreatedAt,
+                StatusChangedAt = order.StatusChangedAt,
+                CustomerName = order.CustomerName,
+                Type = order.Type,
+                Status = order.Status,
+                ItemCount = order.Items.Sum(i => i.Quantity),
+                TotalAmount = order.TotalAmount
+            };
+        }
     }
 }
