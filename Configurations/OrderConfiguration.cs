@@ -9,6 +9,16 @@ namespace Pizza_API.Configurations
     {
         public void Configure(EntityTypeBuilder<Order> builder)
         {
+            builder.HasIndex(o => o.CreatedAt);
+
+            builder.HasIndex(o => o.CompletedAt)
+                .HasFilter("completed_at IS NOT NULL");
+
+            builder.HasIndex(o => o.ReadyAt)
+                .HasFilter("ready_at IS NOT NULL");
+
+            builder.HasIndex(o => o.Status);
+
             builder.HasMany(o => o.Items)
                 .WithOne(oi => oi.Order)
                 .HasForeignKey(oi => oi.OrderId)

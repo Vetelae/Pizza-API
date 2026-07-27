@@ -9,7 +9,9 @@ using Microsoft.OpenApi;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Exceptions;
+using Pizza_API.Helpers;
 using Pizza_API.Hubs;
+using Pizza_API.Options;
 using Pizza_API.Services;
 using Resend;
 using Scalar.AspNetCore;
@@ -20,6 +22,18 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
+
+builder.Services
+    .AddOptions<BusinessOptions>()
+    .Bind(builder.Configuration.GetSection(BusinessOptions.SectionName))
+    .Validate(
+        options => !string.IsNullOrWhiteSpace(options.TimeZoneId),
+        "Business:TimeZoneId is required.")
+    .Validate(
+        options => TimeZoneHelper.IsValidSystemTimeZoneId(options.TimeZoneId),
+        "Business:TimeZoneId must be a valid system time zone.")
+    .ValidateOnStart();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 
 builder.Services.AddSignalR().AddJsonProtocol(options =>
 {
@@ -143,6 +157,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderAdminService, OrderAdminService>();
+builder.Services.AddScoped<IDashboardAdminService, DashboardAdminService>();
 builder.Services.AddScoped<IOrderNotificationPublisher, OrderNotificationPublisher>();
 builder.Services.AddScoped<ICustomerOrderSubscriptionAuthorizer, CustomerOrderSubscriptionAuthorizer>();
 builder.Services.AddScoped<IUserOrderService, UserOrderService>();
