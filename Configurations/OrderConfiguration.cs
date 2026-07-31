@@ -19,6 +19,9 @@ namespace Pizza_API.Configurations
 
             builder.HasIndex(o => o.Status);
 
+            builder.HasIndex(o => new { o.Status, o.CreatedAt, o.Id })
+                .IsDescending(false, true, true);
+
             builder.HasMany(o => o.Items)
                 .WithOne(oi => oi.Order)
                 .HasForeignKey(oi => oi.OrderId)
