@@ -53,6 +53,18 @@ namespace Pizza_API.Helpers
             TotalAmount = order.TotalAmount
         };
 
+        public static Expression<Func<Order, OrderHistoryItemDto>> OrderToHistoryItemDto => order => new OrderHistoryItemDto
+        {
+            Id = order.Id,
+            CreatedAt = order.CreatedAt,
+            CustomerName = order.CustomerName,
+            CustomerPhone = order.CustomerPhone,
+            Type = order.Type,
+            Status = order.Status,
+            ItemCount = order.Items.Sum(i => i.Quantity),
+            TotalAmount = order.TotalAmount
+        };
+
         public static OrderCardDto ToOrderCardDto(OrderDto order)
         {
             return new OrderCardDto

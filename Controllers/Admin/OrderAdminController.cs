@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Order;
-using Pizza_API.Enums;
 using Pizza_API.Services;
 
 namespace Pizza_API.Controllers
@@ -18,15 +17,6 @@ namespace Pizza_API.Controllers
             _orderAdminService = orderAdminService;
         }
 
-        // GET: List of all orders
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders()
-        {
-            var orders = await _orderAdminService.GetAllOrdersAsync();
-
-            return Ok(orders);
-        }
-
         // GET: Lightweight snapshot for the active order board
         [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<OrderCardDto>>> GetActiveOrders()
@@ -36,13 +26,17 @@ namespace Pizza_API.Controllers
             return Ok(orders);
         }
 
-        // GET: Orders by status
-        [HttpGet("status/{status}")]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersByStatus(OrderStatus status)
+        // GET: Paginated completed and cancelled order history
+        [HttpGet("history")]
+        public async Task<ActionResult<OrderHistoryResponseDto>> GetOrderHistory(
+            [FromQuery] OrderHistoryQueryDto query,
+            CancellationToken cancellationToken)
         {
-            var orders = await _orderAdminService.GetOrdersByStatusAsync(status);
+            var history = await _orderAdminService.GetOrderHistoryAsync(
+                query,
+                cancellationToken);
 
-            return Ok(orders);
+            return Ok(history);
         }
 
         // GET: Order by id
