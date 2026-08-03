@@ -432,56 +432,21 @@ namespace Pizza_API.Services
             IQueryable<Order> orders,
             string search)
         {
-            var namePattern = $"%{EscapeLikePattern(search)}%";
-            var isDigitsOnly = search.All(character =>
-                character is >= '0' and <= '9');
-            var isPhoneSearch = search.All(character =>
-                char.IsDigit(character)
-                || char.IsWhiteSpace(character)
-                || character is '+' or '-' or '(' or ')' or '.');
-            var phoneDigits = isPhoneSearch
-                ? new string(search.Where(char.IsDigit).ToArray())
-                : string.Empty;
-            var orderId = isDigitsOnly
-                && int.TryParse(search, out var parsedOrderId)
-                    ? parsedOrderId
-                    : (int?)null;
+            var orderNumber = search.StartsWith('#')
+                ? search[1..]
+                : search;
+            var isOrderNumberSearch = orderNumber.Length > 0
+                && orderNumber.All(character =>
+                    character is >= '0' and <= '9');
 
-            if (!string.IsNullOrEmpty(phoneDigits))
+            if (isOrderNumberSearch)
             {
-                if (orderId.HasValue)
-                {
-                    return orders.Where(o =>
-                        o.Id == orderId.Value
-                        || EF.Functions.ILike(
-                            o.CustomerName,
-                            namePattern,
-                            "\\")
-                        || o.CustomerPhone
-                            .Replace(" ", string.Empty)
-                            .Replace("+", string.Empty)
-                            .Replace("-", string.Empty)
-                            .Replace("(", string.Empty)
-                            .Replace(")", string.Empty)
-                            .Replace(".", string.Empty)
-                            .Contains(phoneDigits));
-                }
-
-                return orders.Where(o =>
-                    EF.Functions.ILike(
-                        o.CustomerName,
-                        namePattern,
-                        "\\")
-                    || o.CustomerPhone
-                        .Replace(" ", string.Empty)
-                        .Replace("+", string.Empty)
-                        .Replace("-", string.Empty)
-                        .Replace("(", string.Empty)
-                        .Replace(")", string.Empty)
-                        .Replace(".", string.Empty)
-                        .Contains(phoneDigits));
+                return int.TryParse(orderNumber, out var orderId)
+                    ? orders.Where(o => o.Id == orderId)
+                    : orders.Where(_ => false);
             }
 
+            var namePattern = $"%{EscapeLikePattern(search)}%";
             return orders.Where(o => EF.Functions.ILike(
                 o.CustomerName,
                 namePattern,
