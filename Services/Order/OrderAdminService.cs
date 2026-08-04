@@ -31,6 +31,7 @@ namespace Pizza_API.Services
                 businessOptions.Value.TimeZoneId);
         }
 
+        // GetActiveOrdersAsync
         public async Task<List<OrderCardDto>> GetActiveOrdersAsync()
         {
             var activeStatuses = new[]
@@ -49,6 +50,7 @@ namespace Pizza_API.Services
                 .ToListAsync();
         }
 
+        // GetOrderHistoryAsync
         public async Task<OrderHistoryResponseDto> GetOrderHistoryAsync(
             OrderHistoryQueryDto query,
             CancellationToken cancellationToken = default)
@@ -114,6 +116,7 @@ namespace Pizza_API.Services
             return order;
         }
 
+        // UpdateOrderAsync
         public async Task<OrderDto> UpdateOrderAsync(int id, UpdateOrderDto dto)
         {
             // Load order with items
@@ -227,6 +230,7 @@ namespace Pizza_API.Services
             return updatedOrder;
         }
 
+        // ChangeOrderStatusAsync
         public async Task<OrderDto> ChangeOrderStatusAsync(int id, UpdateOrderStatusDto dto)
         {
             if (!dto.Status.HasValue)
@@ -269,7 +273,7 @@ namespace Pizza_API.Services
             return updatedOrder;
         }
 
-        // DeleteOrder
+        // DeleteOrderAsync
         public async Task DeleteOrderAsync(int id)
         {
             var order = await _dbContext.Orders.FindAsync(id);
@@ -287,6 +291,7 @@ namespace Pizza_API.Services
             await _dbContext.SaveChangesAsync();
         }
 
+        // ApplyStatusTransition
         private static bool ApplyStatusTransition(Order order, OrderStatus newStatus)
         {
             if (order.Status == newStatus)
@@ -324,6 +329,7 @@ namespace Pizza_API.Services
             return true;
         }
 
+        // IsValidStatusTransition
         private static bool IsValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
         {
             return currentStatus switch
@@ -341,6 +347,7 @@ namespace Pizza_API.Services
             };
         }
 
+        // ValidateHistoryQuery
         private static void ValidateHistoryQuery(OrderHistoryQueryDto query)
         {
             if (query.Page < 1)
@@ -382,6 +389,7 @@ namespace Pizza_API.Services
                 throw new ValidationException("To date is outside the supported range");
         }
 
+        // GetHistoryDateRange
         private (DateTime StartUtc, DateTime EndUtc) GetHistoryDateRange(
             OrderHistoryQueryDto query)
         {
@@ -410,6 +418,7 @@ namespace Pizza_API.Services
             return (ToUtc(startDate), ToUtc(endDate));
         }
 
+        // GetLastMonthRange
         private static (DateOnly StartDate, DateOnly EndDate) GetLastMonthRange(
             DateOnly today)
         {
@@ -417,6 +426,7 @@ namespace Pizza_API.Services
             return (thisMonth.AddMonths(-1), thisMonth);
         }
 
+        // ToUtc
         private DateTime ToUtc(DateOnly date)
         {
             var localDateTime = date.ToDateTime(
@@ -428,6 +438,7 @@ namespace Pizza_API.Services
                 _businessTimeZone);
         }
 
+        // ApplyHistorySearch
         private static IQueryable<Order> ApplyHistorySearch(
             IQueryable<Order> orders,
             string search)
@@ -453,6 +464,7 @@ namespace Pizza_API.Services
                 "\\"));
         }
 
+        // EscapeLikePattern
         private static string EscapeLikePattern(string value)
         {
             return value

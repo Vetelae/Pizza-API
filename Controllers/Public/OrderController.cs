@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Pizza_API.Entities.Dtos.Order;
 using Pizza_API.Services;
 
@@ -25,21 +24,6 @@ namespace Pizza_API.Controllers
 
             var order = await _orderService.GetOrderByIdAsync(id, token);
             return Ok(order);
-        }
-
-        // POST: Create new order
-        [HttpPost]
-        public async Task<ActionResult<OrderDto>> CreateOrder(CreateOrderDto dto)
-        {
-            dto.UserId = User.Identity?.IsAuthenticated == true
-                ? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                : null;
-
-            var createdOrder = await _orderService.CreateOrderAsync(dto);
-
-            return CreatedAtAction(nameof(GetOrderById),
-                new { id = createdOrder.Id },
-                createdOrder);
         }
     }
 }
