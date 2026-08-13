@@ -12,6 +12,7 @@ namespace Pizza_API.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IJwtTokenService _jwtTokenService;
         private readonly IEmailSenderService _emailSenderService;
+        private readonly IAccountLockoutService _accountLockoutService;
         private readonly IConfiguration _configuration;
 
 
@@ -19,11 +20,13 @@ namespace Pizza_API.Services
             UserManager<ApplicationUser> userManager,
             IJwtTokenService jwtTokenService,
             IEmailSenderService emailSenderService,
+            IAccountLockoutService accountLockoutService,
             IConfiguration configuration)
         {
             _userManager = userManager;
             _jwtTokenService = jwtTokenService;
             _emailSenderService = emailSenderService;
+            _accountLockoutService = accountLockoutService;
             _configuration = configuration;
         }
 
@@ -127,23 +130,20 @@ namespace Pizza_API.Services
                 };
             }
 
-            // Check lockout
-            if (await _userManager.IsLockedOutAsync(user))
+            // Keep lockout state hidden behind the generic credentials response.
+            if (await _accountLockoutService.IsLockedOutAsync(user.Id))
             {
-                var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
-                var remaining = lockoutEnd?.Subtract(DateTimeOffset.UtcNow).TotalSeconds ?? 0;
-
                 return new AuthResponseDto
                 {
                     Success = false,
-                    Message = $"Account is locked. Try again in {Math.Ceiling(remaining)} seconds."
+                    Message = "Invalid email or password"
                 };
             }
 
             // Check password
             if (!await _userManager.CheckPasswordAsync(user, loginDto.Password))
             {
-                await _userManager.AccessFailedAsync(user);
+                await _accountLockoutService.RecordFailureAsync(user.Id);
 
                 return new AuthResponseDto
                 {
@@ -152,8 +152,8 @@ namespace Pizza_API.Services
                 };
             }
 
-            // Success. Reset failed count and generate token
-            await _userManager.ResetAccessFailedCountAsync(user);
+            // Success. Reset all failed-attempt and escalation state.
+            await _accountLockoutService.ResetAsync(user.Id);
             var token = await _jwtTokenService.GenerateAccessTokenAsync(user);
 
             // Get the user's primary role

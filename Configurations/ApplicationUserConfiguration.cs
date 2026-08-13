@@ -15,6 +15,9 @@ namespace Pizza_API.Configurations
             builder.Property(u => u.PhoneNumber)
                 .HasMaxLength(OrderConstraints.PhoneMaxLength);
 
+            builder.Property(u => u.LockoutLevel)
+                .HasDefaultValue(0);
+
             builder.HasOne(u => u.Cart)
                 .WithOne(c => c.User)
                 .HasForeignKey<Cart>(c => c.UserId)

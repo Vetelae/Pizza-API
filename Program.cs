@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Pizza_API.Constants;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Exceptions;
@@ -35,6 +36,33 @@ builder.Services
         "Business:TimeZoneId must be a valid system time zone.")
     .ValidateOnStart();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+
+builder.Services
+    .AddOptions<LoginSecurityOptions>()
+    .Bind(builder.Configuration.GetSection(LoginSecurityOptions.SectionName))
+    .Validate(
+        options => options.IpPermitLimit > 0
+            && options.IpWindowSeconds > 0
+            && options.IpSegmentsPerWindow > 0
+            && options.IpSegmentsPerWindow <= options.IpWindowSeconds
+            && options.AccountMaxFailedAttempts > 0
+            && options.AccountObservationWindowMinutes > 0
+            && options.EscalationResetHours > 0,
+        "LoginSecurity numeric settings must be positive and segments cannot exceed the IP window in seconds.")
+    .Validate(
+        options => options.LockoutDurationsMinutes is { Length: > 0 }
+            && options.LockoutDurationsMinutes.All(duration => duration > 0)
+            && options.LockoutDurationsMinutes
+                .Zip(options.LockoutDurationsMinutes.Skip(1), (current, next) => current <= next)
+                .All(isAscending => isAscending),
+        "LoginSecurity lockout durations must be positive and in ascending order.")
+    .ValidateOnStart();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy<string, LoginRateLimitPolicy>(RateLimitPolicies.Login);
+});
 
 builder.Services.AddSignalR().AddJsonProtocol(options =>
 {
@@ -103,10 +131,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = true;
     options.Password.RequiredLength = 8;
 
-    // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(
-        builder.Environment.IsDevelopment() ? 3 : 15);
-    options.Lockout.MaxFailedAccessAttempts = 5;
+    // Lockout duration and escalation are managed by AccountLockoutService.
     options.Lockout.AllowedForNewUsers = true;
 
     // User settings
@@ -171,6 +196,9 @@ builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<INewsService, NewsService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccountLockoutService, AccountLockoutService>();
+builder.Services.AddSingleton<AccountLockoutPolicy>();
+builder.Services.AddSingleton<AccountLockoutCoordinator>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
@@ -211,6 +239,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseExceptionHandler();
 app.UseCors();
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
