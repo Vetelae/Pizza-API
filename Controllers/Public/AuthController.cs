@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Pizza_API.Constants;
 using Pizza_API.Entities.Dtos.Auth;
 using Pizza_API.Services;
 
@@ -64,6 +66,7 @@ namespace Pizza_API.Controllers
 
         // POST: Login
         [HttpPost("login")]
+        [EnableRateLimiting(RateLimitPolicies.Login)]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
         {
             if (!ModelState.IsValid)

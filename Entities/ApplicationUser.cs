@@ -20,6 +20,10 @@ namespace Pizza_API.Entities
         [StringLength(OrderConstraints.PhoneMaxLength, MinimumLength = OrderConstraints.PhoneMinLength)]
         public override string? PhoneNumber { get; set; }
 
+        public DateTimeOffset? FailedLoginWindowStartUtc { get; set; }
+        public int LockoutLevel { get; set; }
+        public DateTimeOffset? LastLockoutAtUtc { get; set; }
+
         // Navigation properties
         public Cart? Cart { get; set; }  // One-to-one: user's active cart
         public ICollection<Order> Orders { get; set; } = new List<Order>();  // Order history
