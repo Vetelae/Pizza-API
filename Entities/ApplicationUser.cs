@@ -23,6 +23,7 @@ namespace Pizza_API.Entities
         public DateTimeOffset? FailedLoginWindowStartUtc { get; set; }
         public int LockoutLevel { get; set; }
         public DateTimeOffset? LastLockoutAtUtc { get; set; }
+        public DateTimeOffset? LastPasswordResetEmailRequestUtc { get; set; }
 
         // Navigation properties
         public Cart? Cart { get; set; }  // One-to-one: user's active cart

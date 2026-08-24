@@ -1,9 +1,12 @@
 ﻿using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Auth;
 using Pizza_API.Exceptions;
+using Pizza_API.Options;
 
 namespace Pizza_API.Services
 {
@@ -14,6 +17,9 @@ namespace Pizza_API.Services
         private readonly IEmailSenderService _emailSenderService;
         private readonly IAccountLockoutService _accountLockoutService;
         private readonly IConfiguration _configuration;
+        private readonly AuthRateLimitingOptions _authRateLimitingOptions;
+        private readonly TimeProvider _timeProvider;
+        private readonly ILogger<AuthService> _logger;
 
 
         public AuthService(
@@ -21,13 +27,19 @@ namespace Pizza_API.Services
             IJwtTokenService jwtTokenService,
             IEmailSenderService emailSenderService,
             IAccountLockoutService accountLockoutService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IOptions<AuthRateLimitingOptions> authRateLimitingOptions,
+            TimeProvider timeProvider,
+            ILogger<AuthService> logger)
         {
             _userManager = userManager;
             _jwtTokenService = jwtTokenService;
             _emailSenderService = emailSenderService;
             _accountLockoutService = accountLockoutService;
             _configuration = configuration;
+            _authRateLimitingOptions = authRateLimitingOptions.Value;
+            _timeProvider = timeProvider;
+            _logger = logger;
         }
 
         // RegisterAsync
@@ -281,15 +293,35 @@ namespace Pizza_API.Services
         // ForgotPasswordAsync
         public async Task<AuthResponseDto> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto)
         {
+            var response = new AuthResponseDto
+            {
+                Success = true,
+                Message = "If an account with that email exists, a password reset link has been sent."
+            };
+
             var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email);
 
             if (user == null || !user.EmailConfirmed)
             {
-                return new AuthResponseDto
-                {
-                    Success = true,
-                    Message = "If an account with that email exists, a password reset link has been sent."
-                };
+                return response;
+            }
+
+            var requestedAtUtc = _timeProvider.GetUtcNow();
+            var cooldownCutoffUtc = requestedAtUtc.AddMinutes(
+                -_authRateLimitingOptions.ForgotPasswordAccountCooldownMinutes);
+
+            var reservedRequests = await _userManager.Users
+                .Where(candidate => candidate.Id == user.Id
+                    && (candidate.LastPasswordResetEmailRequestUtc == null
+                        || candidate.LastPasswordResetEmailRequestUtc <= cooldownCutoffUtc))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(
+                        candidate => candidate.LastPasswordResetEmailRequestUtc,
+                        requestedAtUtc));
+
+            if (reservedRequests == 0)
+            {
+                return response;
             }
 
             // Generate password reset token
@@ -317,14 +349,12 @@ namespace Pizza_API.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to send password reset email: {ex.Message}");
+                _logger.LogError(
+                    ex,
+                    "Failed to send a password reset email after reserving the account cooldown");
             }
 
-            return new AuthResponseDto
-            {
-                Success = true,
-                Message = "If an account with that email exists, a password reset link has been sent."
-            };
+            return response;
         }
 
         // ResetPasswordAsync

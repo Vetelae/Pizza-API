@@ -58,10 +58,41 @@ builder.Services
         "LoginSecurity lockout durations must be positive and in ascending order.")
     .ValidateOnStart();
 
+builder.Services
+    .AddOptions<AuthRateLimitingOptions>()
+    .Bind(builder.Configuration.GetSection(AuthRateLimitingOptions.SectionName))
+    .Validate(
+        options => new[]
+            {
+                options.Register,
+                options.ForgotPassword,
+                options.ResetPassword,
+                options.ConfirmEmail,
+                options.Refresh,
+                options.Logout
+            }
+            .All(rule => rule is not null
+                && rule.PermitLimit > 0
+                && rule.WindowSeconds > 0
+                && rule.SegmentsPerWindow > 0
+                && rule.SegmentsPerWindow <= rule.WindowSeconds),
+        "AuthRateLimiting rules must be positive and segments cannot exceed the window in seconds.")
+    .Validate(
+        options => options.ForgotPasswordAccountCooldownMinutes > 0,
+        "AuthRateLimiting forgot-password account cooldown must be positive.")
+    .ValidateOnStart();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = AuthRateLimitPolicyExtensions.HandleRejectedAsync;
     options.AddPolicy<string, LoginRateLimitPolicy>(RateLimitPolicies.Login);
+    options.AddAuthIpPolicy(RateLimitPolicies.Register, authOptions => authOptions.Register);
+    options.AddAuthIpPolicy(RateLimitPolicies.ForgotPassword, authOptions => authOptions.ForgotPassword);
+    options.AddAuthIpPolicy(RateLimitPolicies.ResetPassword, authOptions => authOptions.ResetPassword);
+    options.AddAuthIpPolicy(RateLimitPolicies.ConfirmEmail, authOptions => authOptions.ConfirmEmail);
+    options.AddAuthIpPolicy(RateLimitPolicies.Refresh, authOptions => authOptions.Refresh);
+    options.AddAuthIpPolicy(RateLimitPolicies.Logout, authOptions => authOptions.Logout);
 });
 
 builder.Services.AddSignalR().AddJsonProtocol(options =>
