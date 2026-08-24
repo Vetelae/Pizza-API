@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -82,10 +83,60 @@ builder.Services
         "AuthRateLimiting forgot-password account cooldown must be positive.")
     .ValidateOnStart();
 
+builder.Services
+    .AddOptions<TrafficRateLimitingOptions>()
+    .Bind(builder.Configuration.GetSection(TrafficRateLimitingOptions.SectionName))
+    .Validate(
+        options => new[]
+            {
+                options.Global,
+                options.PublicReads,
+                options.CartReads,
+                options.CartMutations,
+                options.Checkout
+            }
+            .All(rule => rule is not null
+                && rule.PermitLimit > 0
+                && rule.WindowSeconds > 0
+                && rule.SegmentsPerWindow > 0
+                && rule.SegmentsPerWindow <= rule.WindowSeconds),
+        "TrafficRateLimiting rules must be positive and segments cannot exceed the window in seconds.")
+    .ValidateOnStart();
+
+var reverseProxyOptions = builder.Configuration
+    .GetSection(ReverseProxyOptions.SectionName)
+    .Get<ReverseProxyOptions>() ?? new ReverseProxyOptions();
+
+builder.Services
+    .AddOptions<ReverseProxyOptions>()
+    .Bind(builder.Configuration.GetSection(ReverseProxyOptions.SectionName))
+    .Validate(
+        options => options.IsValid(),
+        "ReverseProxy must specify a positive forward limit and valid trusted proxy IP addresses or CIDR networks when enabled.")
+    .ValidateOnStart();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    if (!reverseProxyOptions.Enabled)
+        return;
+
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = reverseProxyOptions.ForwardLimit;
+    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Clear();
+
+    foreach (var knownProxy in reverseProxyOptions.KnownProxies)
+        options.KnownProxies.Add(System.Net.IPAddress.Parse(knownProxy));
+
+    foreach (var knownNetwork in reverseProxyOptions.KnownNetworks)
+        options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(knownNetwork));
+});
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.OnRejected = AuthRateLimitPolicyExtensions.HandleRejectedAsync;
+    options.GlobalLimiter = TrafficRateLimitPolicyExtensions.CreateGlobalLimiter();
     options.AddPolicy<string, LoginRateLimitPolicy>(RateLimitPolicies.Login);
     options.AddAuthIpPolicy(RateLimitPolicies.Register, authOptions => authOptions.Register);
     options.AddAuthIpPolicy(RateLimitPolicies.ForgotPassword, authOptions => authOptions.ForgotPassword);
@@ -93,6 +144,17 @@ builder.Services.AddRateLimiter(options =>
     options.AddAuthIpPolicy(RateLimitPolicies.ConfirmEmail, authOptions => authOptions.ConfirmEmail);
     options.AddAuthIpPolicy(RateLimitPolicies.Refresh, authOptions => authOptions.Refresh);
     options.AddAuthIpPolicy(RateLimitPolicies.Logout, authOptions => authOptions.Logout);
+    options.AddTrafficIpPolicy(RateLimitPolicies.PublicReads, trafficOptions => trafficOptions.PublicReads);
+    options.AddCartPolicy(RateLimitPolicies.CartReads, trafficOptions => trafficOptions.CartReads);
+    options.AddCartPolicy(RateLimitPolicies.CartMutations, trafficOptions => trafficOptions.CartMutations);
+    options.AddCartPolicy(RateLimitPolicies.Checkout, trafficOptions => trafficOptions.Checkout);
+});
+
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy(
+        OutputCachePolicies.PublicReads,
+        policy => policy.Expire(TimeSpan.FromMinutes(5)));
 });
 
 builder.Services.AddSignalR().AddJsonProtocol(options =>
@@ -234,6 +296,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddSingleton<IOutputCacheInvalidator, OutputCacheInvalidator>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -261,6 +324,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseForwardedHeaders();
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
@@ -270,18 +334,19 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseExceptionHandler();
 app.UseCors();
 app.UseHttpsRedirection();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
+app.UseOutputCache();
 app.MapControllers();
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = _ => false
-}).AllowAnonymous();
+}).AllowAnonymous().DisableRateLimiting();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = healthCheck => healthCheck.Tags.Contains("ready")
-}).AllowAnonymous();
+}).AllowAnonymous().DisableRateLimiting();
 app.MapHub<OrderNotificationHub>("/hubs/admin/orders");
 app.MapHub<CustomerOrderNotificationHub>("/hubs/customer/orders");
 

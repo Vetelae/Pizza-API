@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Pizza_API.Constants;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.MenuItem;
@@ -10,49 +11,55 @@ namespace Pizza_API.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IImageService _imageService;
+        private readonly IOutputCacheInvalidator _outputCacheInvalidator;
 
-        public MenuItemService(ApplicationDbContext dbContext, IImageService imageService)
+        public MenuItemService(
+            ApplicationDbContext dbContext,
+            IImageService imageService,
+            IOutputCacheInvalidator outputCacheInvalidator)
         {
             _dbContext = dbContext;
             _imageService = imageService;
+            _outputCacheInvalidator = outputCacheInvalidator;
         }
         public async Task<List<MenuItemDto>> GetAllMenuItemsAsync()
         {
-            var menuItems = await _dbContext.MenuItems
-                .Include(m => m.Category)
+            return await _dbContext.MenuItems
+                .AsNoTracking()
+                .Select(m => new MenuItemDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Description = m.Description,
+                    Price = m.Price,
+                    IsAvailable = m.IsAvailable,
+                    CategoryId = m.CategoryId,
+                    ImagePath = m.ImagePath
+                })
                 .ToListAsync();
-
-            return menuItems.Select(m => new MenuItemDto
-            {
-                Id = m.Id,
-                Name = m.Name,
-                Description = m.Description,
-                Price = m.Price,
-                IsAvailable = m.IsAvailable,
-                CategoryId = m.CategoryId,
-                ImagePath = m.ImagePath
-            }).ToList();
         }
 
         public async Task<MenuItemDto> GetMenuItemByIdAsync(int id)
         {
             var menuItem = await _dbContext.MenuItems
-                .Include(m => m.Category)
-                .SingleOrDefaultAsync(m => m.Id == id);
+                .AsNoTracking()
+                .Where(m => m.Id == id)
+                .Select(m => new MenuItemDto
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Description = m.Description,
+                    Price = m.Price,
+                    IsAvailable = m.IsAvailable,
+                    CategoryId = m.CategoryId,
+                    ImagePath = m.ImagePath
+                })
+                .SingleOrDefaultAsync();
 
             if (menuItem == null)
                 throw new NotFoundException($"MenuItem {id} not found");
 
-            return new MenuItemDto
-            {
-                Id = menuItem.Id,
-                Name = menuItem.Name,
-                Description = menuItem.Description,
-                Price = menuItem.Price,
-                IsAvailable = menuItem.IsAvailable,
-                CategoryId = menuItem.CategoryId,
-                ImagePath = menuItem.ImagePath
-            };
+            return menuItem;
         }
 
         public async Task<MenuItemDto> CreateMenuItemAsync(CreateMenuItemDto dto)
@@ -77,6 +84,7 @@ namespace Pizza_API.Services
 
             _dbContext.MenuItems.Add(menuItem);
             await _dbContext.SaveChangesAsync();
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.MenuItems);
 
             return new MenuItemDto
             {
@@ -115,6 +123,7 @@ namespace Pizza_API.Services
 
             // Save changes
             await _dbContext.SaveChangesAsync();
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.MenuItems);
 
             // Return updated DTO
             return new MenuItemDto
@@ -144,6 +153,7 @@ namespace Pizza_API.Services
             menuItem.ImagePath = imagePath;
             menuItem.ImageFileName = imageFileName;
             await _dbContext.SaveChangesAsync();
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.MenuItems);
 
             // Only delete old image after DB save succeeds
             _imageService.DeleteImage(oldImageFileName, "menu-items");
@@ -170,6 +180,8 @@ namespace Pizza_API.Services
             {
                 throw new ConflictException($"MenuItem {id} cannot be deleted because it is referenced elsewhere.");
             }
+
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.MenuItems);
 
             // Delete image file only after the DB delete succeeds
             _imageService.DeleteImage(menuItem.ImageFileName, "menu-items");

@@ -1,4 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.RateLimiting;
+using Pizza_API.Constants;
 using Pizza_API.Entities.Dtos.MenuItem;
 using Pizza_API.Services;
 
@@ -6,6 +9,8 @@ namespace Pizza_API.Controllers
 {
     [Route("api/public/menuitems")]
     [ApiController]
+    [EnableRateLimiting(RateLimitPolicies.PublicReads)]
+    [OutputCache(PolicyName = OutputCachePolicies.PublicReads, Tags = new[] { OutputCacheTags.MenuItems })]
     public class MenuItemController : ControllerBase
     {
         private readonly IMenuItemService _menuItemService;

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Pizza_API.Entities.Dtos.Auth;
 using Pizza_API.Options;
@@ -52,21 +53,36 @@ namespace Pizza_API.Services
 
             var logger = context.HttpContext.RequestServices
                 .GetRequiredService<ILoggerFactory>()
-                .CreateLogger("Pizza_API.Services.AuthRateLimiting");
+                .CreateLogger("Pizza_API.Services.RateLimiting");
             var endpointName = context.HttpContext.GetEndpoint()?.DisplayName
                 ?? context.HttpContext.Request.Path.Value
                 ?? "unknown";
 
             logger.LogWarning(
-                "Auth rate limit rejected request to {EndpointName} from {RemoteIpAddress}",
+                "Rate limit rejected request to {EndpointName} from {RemoteIpAddress}",
                 endpointName,
                 context.HttpContext.Connection.RemoteIpAddress);
 
+            if (context.HttpContext.Request.Path.StartsWithSegments(
+                "/api/auth",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                await context.HttpContext.Response.WriteAsJsonAsync(
+                    new AuthResponseDto
+                    {
+                        Success = false,
+                        Message = "Too many requests. Please try again later."
+                    },
+                    cancellationToken);
+                return;
+            }
+
             await context.HttpContext.Response.WriteAsJsonAsync(
-                new AuthResponseDto
+                new ProblemDetails
                 {
-                    Success = false,
-                    Message = "Too many requests. Please try again later."
+                    Status = StatusCodes.Status429TooManyRequests,
+                    Title = "Too Many Requests",
+                    Detail = "Too many requests. Please try again later."
                 },
                 cancellationToken);
         }

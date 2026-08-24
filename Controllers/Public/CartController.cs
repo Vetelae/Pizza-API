@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Pizza_API.Constants;
 using Pizza_API.Entities.Dtos.Cart;
 using Pizza_API.Entities.Dtos.CartItem;
 using Pizza_API.Helpers;
@@ -19,6 +21,7 @@ namespace Pizza_API.Controllers.Public
 
         // GET: api/cart
         [HttpGet]
+        [EnableRateLimiting(RateLimitPolicies.CartReads)]
         public async Task<ActionResult<CartDto>> GetCart()
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
@@ -30,6 +33,7 @@ namespace Pizza_API.Controllers.Public
 
         // POST: api/cart/items
         [HttpPost("items")]
+        [EnableRateLimiting(RateLimitPolicies.CartMutations)]
         public async Task<ActionResult<CartDto>> AddItem(AddCartItemDto dto)
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
@@ -41,6 +45,7 @@ namespace Pizza_API.Controllers.Public
 
         // PUT: api/cart/items/{cartItemId}
         [HttpPut("items/{cartItemId}")]
+        [EnableRateLimiting(RateLimitPolicies.CartMutations)]
         public async Task<ActionResult<CartDto>> UpdateItem(int cartItemId, UpdateCartItemDto dto)
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
@@ -52,6 +57,7 @@ namespace Pizza_API.Controllers.Public
 
         // DELETE: api/cart/items/{cartItemId}
         [HttpDelete("items/{cartItemId}")]
+        [EnableRateLimiting(RateLimitPolicies.CartMutations)]
         public async Task<ActionResult<CartDto>> RemoveItem(int cartItemId)
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
@@ -63,6 +69,7 @@ namespace Pizza_API.Controllers.Public
 
         // DELETE: api/cart
         [HttpDelete]
+        [EnableRateLimiting(RateLimitPolicies.CartMutations)]
         public async Task<ActionResult> ClearCart()
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
@@ -74,6 +81,7 @@ namespace Pizza_API.Controllers.Public
 
         // POST: api/cart/checkout
         [HttpPost("checkout")]
+        [EnableRateLimiting(RateLimitPolicies.Checkout)]
         public async Task<ActionResult> Checkout(CheckoutDto dto)
         {
             var (userId, sessionId) = CartIdentifierHelper.GetCartIdentifiers(HttpContext);
