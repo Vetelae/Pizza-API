@@ -23,6 +23,7 @@ namespace Pizza_API.Controllers
 
         // POST: Register
         [HttpPost("register")]
+        [EnableRateLimiting(RateLimitPolicies.Register)]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
             if (!ModelState.IsValid)
@@ -42,6 +43,7 @@ namespace Pizza_API.Controllers
 
         // POST: Confirm Email
         [HttpPost("confirm-email")]
+        [EnableRateLimiting(RateLimitPolicies.ConfirmEmail)]
         public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
@@ -91,6 +93,7 @@ namespace Pizza_API.Controllers
 
         // POST: Forgot password
         [HttpPost("forgot-password")]
+        [EnableRateLimiting(RateLimitPolicies.ForgotPassword)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
         {
             if (!ModelState.IsValid)
@@ -104,6 +107,7 @@ namespace Pizza_API.Controllers
 
         // POST: Reset password
         [HttpPost("reset-password")]
+        [EnableRateLimiting(RateLimitPolicies.ResetPassword)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
         {
             if (!ModelState.IsValid)
@@ -119,6 +123,7 @@ namespace Pizza_API.Controllers
 
         // POST: Refresh
         [HttpPost("refresh")]
+        [EnableRateLimiting(RateLimitPolicies.Refresh)]
         public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenRequestDto refreshTokenRequest)
         {
             if (!ModelState.IsValid)
@@ -159,6 +164,7 @@ namespace Pizza_API.Controllers
 
         // POST: Logout
         [HttpPost("logout")]
+        [EnableRateLimiting(RateLimitPolicies.Logout)]
         public async Task<IActionResult> Logout([FromBody] RefreshTokenRequestDto refreshTokenRequest)
         {
             if (string.IsNullOrWhiteSpace(refreshTokenRequest.RefreshToken))
