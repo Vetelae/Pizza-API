@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pizza_API.Constants;
@@ -88,45 +87,6 @@ namespace Pizza_API.Controllers
             result.RefreshToken = refreshToken;
 
             return Ok(result);
-        }
-
-        // GET: Me
-        [Authorize]
-        [HttpGet("me")]
-        public async Task<ActionResult<UserProfileDto>> GetMe()
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                return Unauthorized();
-            }
-
-            var profile = await _authService.GetUserProfileAsync(userId);
-
-            if (profile == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(profile);
-        }
-
-        // PUT: Me
-        [Authorize]
-        [HttpPut("me")]
-        public async Task<ActionResult<UserProfileDto>> UpdateMe([FromBody] UpdateUserProfileDto dto)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                throw new UnauthorizedAccessException();
-            }
-
-            var profile = await _authService.UpdateUserProfileAsync(userId, dto);
-
-            return Ok(profile);
         }
 
         // POST: Forgot password
