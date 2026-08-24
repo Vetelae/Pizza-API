@@ -9,5 +9,9 @@ namespace Pizza_API.Constants
         public const string ConfirmEmail = "confirm-email";
         public const string Refresh = "refresh";
         public const string Logout = "logout";
+        public const string PublicReads = "public-reads";
+        public const string CartReads = "cart-reads";
+        public const string CartMutations = "cart-mutations";
+        public const string Checkout = "checkout";
     }
 }

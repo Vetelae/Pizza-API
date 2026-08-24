@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Pizza_API.Constants;
 using Pizza_API.Data;
 using Pizza_API.Entities;
 using Pizza_API.Entities.Dtos.Category;
@@ -10,16 +11,22 @@ namespace Pizza_API.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IImageService _imageService;
+        private readonly IOutputCacheInvalidator _outputCacheInvalidator;
 
-        public CategoryService(ApplicationDbContext dbContext, IImageService imageService)
+        public CategoryService(
+            ApplicationDbContext dbContext,
+            IImageService imageService,
+            IOutputCacheInvalidator outputCacheInvalidator)
         {
             _dbContext = dbContext;
             _imageService = imageService;
+            _outputCacheInvalidator = outputCacheInvalidator;
         }
 
         public async Task<List<CategoryDto>> GetAllCategoriesAsync()
         {
             return await _dbContext.Categories
+                .AsNoTracking()
                 .Select(c => new CategoryDto
                 {
                     Id = c.Id,
@@ -32,18 +39,22 @@ namespace Pizza_API.Services
 
         public async Task<CategoryDto> GetCategoryByIdAsync(int id)
         {
-            var category = await _dbContext.Categories.FindAsync(id);
+            var category = await _dbContext.Categories
+                .AsNoTracking()
+                .Where(c => c.Id == id)
+                .Select(c => new CategoryDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    ImagePath = c.ImagePath,
+                    ImageFileName = c.ImageFileName
+                })
+                .SingleOrDefaultAsync();
 
             if (category == null)
                 throw new NotFoundException($"Category {id} not found");
 
-            return new CategoryDto
-            {
-                Id = category.Id,
-                Name = category.Name,
-                ImagePath = category.ImagePath,
-                ImageFileName = category.ImageFileName
-            };
+            return category;
         }
 
         public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto dto)
@@ -67,6 +78,7 @@ namespace Pizza_API.Services
 
             _dbContext.Categories.Add(category);
             await _dbContext.SaveChangesAsync();
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.Categories);
 
             return new CategoryDto
             {
@@ -98,6 +110,7 @@ namespace Pizza_API.Services
 
             // Save changes
             await _dbContext.SaveChangesAsync();
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.Categories);
 
             // Return updated Dto
             return new CategoryDto
@@ -124,6 +137,7 @@ namespace Pizza_API.Services
             category.ImagePath = imagePath;
             category.ImageFileName = imageFileName;
             await _dbContext.SaveChangesAsync();
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.Categories);
 
             return imagePath;
         }
@@ -146,6 +160,7 @@ namespace Pizza_API.Services
 
             _dbContext.Categories.Remove(category);
             await _dbContext.SaveChangesAsync();
+            await _outputCacheInvalidator.EvictByTagAsync(OutputCacheTags.Categories);
         }
     }
 }
