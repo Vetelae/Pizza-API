@@ -23,7 +23,14 @@ namespace Pizza_API.Data
                 }
             }
 
-            // Seed Admin user
+            var environment = serviceProvider.GetRequiredService<IWebHostEnvironment>();
+
+            if (!environment.IsDevelopment())
+            {
+                return;
+            }
+
+            // Seed development admin user
             var adminEmail = "admin@pizzashop.com";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
 

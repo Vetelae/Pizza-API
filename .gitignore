@@ -24,6 +24,7 @@ appsettings.Development.json
 packages/
 
 # Others
+*.tmp
 *.db
 *.db-shm
 *.db-wal
